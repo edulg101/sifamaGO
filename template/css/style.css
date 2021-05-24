@@ -1,0 +1,35 @@
+body {
+    font: Montserrat;
+    font-size: 32px;
+    color: rgb(58, 58, 58) ;
+}
+
+.title {
+    text-align: center;
+    font-weight: 600;
+    font-style: italic;
+    padding-top: 50px;
+}
+
+
+.tro {
+    font-size: 0.7em;
+    
+
+}
+
+.local-title {
+    font-size: 0.6em;
+    font-style: italic;
+    width: 100%;
+
+}
+
+.dnit {
+    background-color: greenyellow;
+}
+
+.disposicao {
+    font-size: 0.5em;
+    font-style: italic;
+}
