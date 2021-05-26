@@ -2,16 +2,18 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"html/template"
 	"image"
 	"image/color"
 	"image/jpeg"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
-	"github.com/dlclark/regexp2"
+	"sifamaGO/db"
+	"sifamaGO/util"
+
 	"github.com/fogleman/gg"
 )
 
@@ -24,8 +26,8 @@ func populateFotosOnDB(path string) {
 		}
 
 		_, name := filepath.Split(currentPath)
-		if !info.IsDir() && strings.HasSuffix(name, "jpg") {
-			name = checkForNameSize(name)
+		if !info.IsDir() && (strings.HasSuffix(name, "jpg") || strings.HasSuffix(name, "jpeg") || strings.HasSuffix(name, "png")) {
+			name = CheckForNameSize(currentPath)
 
 			url := filepath.Join("fotos", name)
 			url = filepath.ToSlash(url)
@@ -34,7 +36,7 @@ func populateFotosOnDB(path string) {
 				Nome:    name,
 				Path:    template.URL(currentPath),
 				UrlPath: urlp}
-			db.Create(&image)
+			db.GetDB().Create(&image)
 		}
 		return err
 	})
@@ -47,26 +49,30 @@ func populateFotosOnDB(path string) {
 func saveFotosOnLocal(IdColuna, caption string, local *Local) {
 
 	var fotos []Foto
-	db.Find(&fotos)
-	re := regexp2.MustCompile(IdColuna+`(?!\\d)`, 0)
+	db.GetDB().Find(&fotos)
+	// re := regexp2.MustCompile(IdColuna`(?!\\d+)`, 1)
 	for _, foto := range fotos {
 		name := foto.Nome
-		m, err := re.MatchString(name)
+		// 	m, err := re.MatchString(name)
+
+		re := regexp.MustCompile(IdColuna + `[^0-9]`)
+
+		m := re.MatchString(name)
 
 		if m {
+
 			foto.LocalID = local.ID
 			if foto.Legenda == "" {
 				foto.Legenda = caption
 			}
-			db.Save(&foto)
+			db.GetDB().Save(&foto)
 			local.Fotos = append(local.Fotos, foto)
 
 			merge(string(foto.Path), foto.Legenda)
 		}
-		if err != nil {
-			fmt.Println(err)
-		}
-
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 	}
 }
 
@@ -131,7 +137,7 @@ func merge(filePath, caption string) {
 		captionY := float64((height - 34) + (34 * i) + captionHeigth/2.0)
 
 		dc.SetColor(color.Gray16{0x3030})
-		if err := dc.LoadFontFace("C:\\Windows\\Fonts\\Arial.ttf", 18); err != nil {
+		if err := dc.LoadFontFace(util.FONTPATH, 18); err != nil {
 			panic(err)
 		}
 		dc.DrawStringAnchored(lines[i], float64(width)/2, captionY, 0.5, 0.5)
@@ -141,12 +147,12 @@ func merge(filePath, caption string) {
 	image := dc.Image()
 	_, fileName := filepath.Split(filePath)
 
-	_, err = os.Stat(OUTPUTIMAGEFOLDER)
+	_, err = os.Stat(util.OUTPUTIMAGEFOLDER)
 	if os.IsNotExist(err) {
-		os.MkdirAll(OUTPUTIMAGEFOLDER, os.ModePerm)
+		os.MkdirAll(util.OUTPUTIMAGEFOLDER, os.ModePerm)
 	}
 
-	target := filepath.Join(OUTPUTIMAGEFOLDER, fileName)
+	target := filepath.Join(util.OUTPUTIMAGEFOLDER, fileName)
 
 	final, err := os.Create(target)
 	if err != nil {

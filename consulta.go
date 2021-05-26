@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -269,4 +270,11 @@ func waitForElementToBeClickableAndClick(driver selenium.WebDriver, id string) e
 	}
 	return e
 
+}
+
+func errorHandle(e error) {
+	if e != nil {
+		log.Println(e)
+		panic(e)
+	}
 }

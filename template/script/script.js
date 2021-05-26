@@ -22,7 +22,7 @@ function startDigitacao() {
         Restart: false,
     };
 
-    const usersPromise = fetch('/', {
+    const usersPromise = fetch('/report', {
         method: 'POST',
         body: JSON.stringify(requestData)
     });
@@ -52,9 +52,9 @@ function saveFile() {
 
 }
 
-function toHome() {
+function toReport() {
     console.log('entrou')
-    // window.location.href = "/index.html";
+    window.location.href = "/report";
 
 }
 
@@ -64,7 +64,7 @@ async function restart() {
         Restart: true,
     };
 
-    const response = fetch('/', {
+    const response = fetch('/report', {
         method: 'POST',
         body: JSON.stringify(requestData)
     });

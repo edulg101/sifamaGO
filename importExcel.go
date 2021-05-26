@@ -7,11 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"sifamaGO/db"
+
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"gorm.io/gorm"
 )
 
-func importSpreadSheet(path string) ([][]string, error) {
+func ImportSpreadSheet(path string) ([][]string, error) {
 	f, err := excelize.OpenFile(path)
 	if err != nil {
 		fmt.Println(err)
@@ -20,7 +22,7 @@ func importSpreadSheet(path string) ([][]string, error) {
 
 	// Get all the rows in the Sheet1.
 	rows := f.GetRows("Planilha1")
-	parseSpreadSheet(rows, db)
+	parseSpreadSheet(rows, db.GetDB())
 	return rows, nil
 }
 
@@ -50,6 +52,7 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 		}
 		// var coluna rune = 65
 		for j, word := range row {
+			fmt.Printf("linha %v, coluna %v\n", i+1, j+1)
 			word = strings.ToLower(word)
 			word = strings.TrimSpace(word)
 			// coluna = rune(j) + coluna
@@ -62,10 +65,10 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 			if strings.TrimSpace(word) == "tro" {
 				palavraChave := row[j+1]
 				tro = Tro{PalavraChave: palavraChave}
-				artList := getDisposicaoLegal(palavraChave)
+				artList := GetDisposicaoLegal(palavraChave)
 				tro.DisposicaoArt = artList[0]
 				tro.DisposicaoCod = artList[1]
-				tro.Disposicao = getDescricaoDisposicaoLegal(tro.DisposicaoCod)
+				tro.Disposicao = GetDescricaoDisposicaoLegal(tro.DisposicaoCod)
 				observacao := row[j+2]
 				tro.Observacao = observacao
 				tro.Prazo = row[j+3]
@@ -163,7 +166,7 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 					}
 
 				} else if j == 9 {
-					caption := properTitle(word)
+					caption := ProperTitle(word)
 					local = Local{
 						NumIdentificacao: nIdentidade,
 						Data:             date,
@@ -185,14 +188,14 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 						pista == previousLocal.Pista {
 
 						fmt.Println("local Repetido")
-						caption = isLocationValid(caption, &local)
+						caption = IsLocationValid(caption, &local)
 						saveFotosOnLocal(local.NumIdentificacao, caption, &previousLocal)
 
 					} else {
 						local.TroID = tro.ID
 						fmt.Println("salvando local .........................")
 						db.Create(&local)
-						caption = isLocationValid(caption, &local)
+						caption = IsLocationValid(caption, &local)
 						saveFotosOnLocal(local.NumIdentificacao, caption, &local)
 						previousLocal = local
 					}
@@ -217,7 +220,7 @@ type compareTroTime struct {
 func checkForDuplicateTime() {
 	var t Tro
 
-	tros := t.findAll()
+	tros := t.FindAll()
 
 	var data string
 	var hora string
@@ -242,14 +245,14 @@ func checkForDuplicateTime() {
 	for match != -1 {
 		var local Local
 		localId := list[match].localId
-		db.First(&local, localId)
+		db.GetDB().First(&local, localId)
 		rand.Seed(time.Now().UnixNano())
 		randomInt := rand.Intn(59)
 		newMinutes := fmt.Sprintf("%02d", randomInt)
 		oldHora := local.Hora
 		horaCheia := oldHora[0:3]
 		local.Hora = horaCheia + newMinutes
-		db.Save(&local)
+		db.GetDB().Save(&local)
 		list[match].hora = local.Hora
 		match = getLocalIdWithDuplicated(list)
 	}

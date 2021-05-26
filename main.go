@@ -1,144 +1,57 @@
 package main
 
 import (
-	"html/template"
 	"net/http"
-	"time"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+
+	"sifamaGO/db"
+	"sifamaGO/util"
 )
-
-type Foto struct {
-	gorm.Model
-	ID      uint
-	Nome    string
-	Path    template.URL
-	Legenda string
-	LocalID uint
-	Local   Local
-	UrlPath template.URL
-}
-
-type Local struct {
-	gorm.Model
-	ID               uint
-	NumIdentificacao string
-	Data             string
-	Hora             string
-	Rodovia          string
-	Pista            string
-	KmInicial        string
-	KmFinal          string
-	Sentido          string
-	KmInicialDouble  float64
-	KmFinalDouble    float64
-	TrechoDNIT       bool
-	Valid            bool
-	Fotos            []Foto `gorm:"ForeignKey:LocalID"`
-	TroID            uint
-	Tro              Tro
-}
-
-type Tro struct {
-	gorm.Model
-	ID            uint
-	PalavraChave  string
-	Observacao    string
-	Prazo         string
-	TipoPrazo     string
-	Severidade    string
-	Disposicao    string
-	DisposicaoCod string
-	DisposicaoArt string
-	Locais        []Local // `gorm:"ForeignKey:TroID"`
-}
-
-type Folder struct {
-	FolderName string
-}
-
-func (tro Tro) findAll() []Tro {
-	var troList []Tro
-	db.Preload("Locais.Fotos").Preload(clause.Associations).Find(&troList)
-	return troList
-}
-func (local Local) findAllLocais() []Local {
-	var localList []Local
-	db.Preload("Fotos").Find(&localList)
-	return localList
-}
-func (tro Tro) findAllFotos() []Tro {
-	var troList []Tro
-	db.Preload("Locais.Fotos").Preload(clause.Associations).Find(&troList)
-	return troList
-}
-
-type FilesModel struct {
-	Folders []Folder
-}
-
-type TroModel struct {
-	Data     string
-	Tro      []Tro
-	TotalTro int
-	Folders  []Folder
-}
 
 // var indexHTML embed.FS
 
 func main() {
 
-	conectDB()
+	db.ConectDB()
+
+	db.GetDB().AutoMigrate(&Tro{})
+	db.GetDB().AutoMigrate(&Local{})
+	db.GetDB().AutoMigrate(&Foto{})
 	// populateFotosOnDB(ORIGINIMAGEPATH)
 	// _, err := importSpreadSheet(SPREADSHEETPATH)
 	// errorHandle(err)
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/", home)
+	r.HandleFunc("/", Home)
 
-	r.HandleFunc("/inicial", inicial)
+	r.HandleFunc("/report", Report)
 
-	r.HandleFunc("/favicon.ico", faviconHandler)
+	r.HandleFunc("/favicon.ico", FaviconHandler)
 
-	// Image server
-	// staticDir := "template\\images\\"
-	staticDir := OUTPUTIMAGEFOLDER
+	staticDir := util.OUTPUTIMAGEFOLDER
 	staticURL := "/fotos/"
 	r.PathPrefix(staticURL).Handler(http.StripPrefix(staticURL, http.FileServer(http.Dir(staticDir))))
 
 	// Logo Router and static images
 
-	imgesStaticDir := "template\\images\\"
+	imgesStaticDir := filepath.Join("template", "images")
+	cssStaticPath := filepath.Join("template", "css")
+	scriptStaticPath := filepath.Join("template", "script")
+
 	imagesStaticURL := "/images/"
 	r.PathPrefix(imagesStaticURL).Handler(http.StripPrefix(imagesStaticURL, http.FileServer(http.Dir(imgesStaticDir))))
-
 	// Css Router
-	cssStaticPath := "template\\css\\"
 	cssUrlPath := "/css/"
 	r.PathPrefix(cssUrlPath).Handler(http.StripPrefix(cssUrlPath, http.FileServer(http.Dir(cssStaticPath))))
-
 	// Script Router
-
-	scrpitStaticPath := "template\\script\\"
 	scriptUrlPath := "/script/"
-	r.PathPrefix(scriptUrlPath).Handler(http.StripPrefix(scriptUrlPath, http.FileServer(http.Dir(scrpitStaticPath))))
+	r.PathPrefix(scriptUrlPath).Handler(http.StripPrefix(scriptUrlPath, http.FileServer(http.Dir(scriptStaticPath))))
 
 	err := http.ListenAndServe(":8080", r)
-	errorHandle(err)
-
-	time.Sleep(time.Minute)
-
-}
-func restart() {
-
-	cleanUpDB(db)
-
-	// populateFotosOnDB(ORIGINIMAGEPATH)
-	// _, err := importSpreadSheet(SPREADSHEETPATH)
-	// errorHandle(err)
+	panic(err)
 
 }
 
