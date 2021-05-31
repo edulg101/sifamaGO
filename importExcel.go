@@ -7,26 +7,27 @@ import (
 	"strings"
 	"time"
 
-	"sifamaGO/db"
+	"sifamaGO/src/db"
+	"sifamaGO/src/util/geo"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"gorm.io/gorm"
 )
 
-func ImportSpreadSheet(path string) ([][]string, error) {
+func ImportSpreadSheet(path string) error {
 	f, err := excelize.OpenFile(path)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 
 	// Get all the rows in the Sheet1.
 	rows := f.GetRows("Planilha1")
-	parseSpreadSheet(rows, db.GetDB())
-	return rows, nil
+	err = parseSpreadSheet(rows, db.GetDB())
+	return err
 }
 
-func parseSpreadSheet(rows [][]string, db *gorm.DB) {
+func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 
 	var tro Tro
 	var local Local
@@ -44,6 +45,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 	var pista string
 
 	var previousLocal Local
+	var listaGeo []Geolocation
+	geo.GetDBGEO().Find(&listaGeo)
 
 	for i, row := range rows {
 
@@ -52,7 +55,6 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 		}
 		// var coluna rune = 65
 		for j, word := range row {
-			fmt.Printf("linha %v, coluna %v\n", i+1, j+1)
 			word = strings.ToLower(word)
 			word = strings.TrimSpace(word)
 			// coluna = rune(j) + coluna
@@ -66,12 +68,22 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 				palavraChave := row[j+1]
 				tro = Tro{PalavraChave: palavraChave}
 				artList := GetDisposicaoLegal(palavraChave)
-				tro.DisposicaoArt = artList[0]
-				tro.DisposicaoCod = artList[1]
+				if len(artList) > 1 {
+					tro.DisposicaoArt = artList[0]
+					tro.DisposicaoCod = artList[1]
+				} else {
+					return fmt.Errorf("erro. não consegui Identificar o tipo de Disposição Legal na linha %v.... abortando", i+1)
+
+				}
 				tro.Disposicao = GetDescricaoDisposicaoLegal(tro.DisposicaoCod)
 				observacao := row[j+2]
 				tro.Observacao = observacao
 				tro.Prazo = row[j+3]
+				_, err := strconv.ParseInt(tro.Prazo, 10, 32)
+				if err != nil {
+					return fmt.Errorf("erro. não consegui Identificar Prazo na linha %v.... abortando", i+1)
+
+				}
 				tipoPrazo := row[j+4]
 				tipoPrazo = strings.ToLower(tipoPrazo)
 				if strings.HasPrefix(tipoPrazo, "d") {
@@ -80,7 +92,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 					tro.TipoPrazo = "1"
 
 				} else {
-					fmt.Println("Deu merda. pode parar o programa. Esqueceu de botar o tipo de prazo.")
+					return fmt.Errorf("erro. não consegui obter o tipo de prazo na linha %v.... abortando", i+1)
+
 				}
 				db.Create(&tro)
 
@@ -96,7 +109,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 					if row[j+1] == "" {
 						tempDate, err := time.Parse("1/2/06 15:04", word)
 						if err != nil {
-							panic(err)
+							return fmt.Errorf("erro. não consegui identificar a string data / hora na linha %v.... abortando", i+1)
+
 						}
 						date = tempDate.Format("02/01/2006")
 						hora = tempDate.Format("15:04")
@@ -105,7 +119,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 						fmt.Println(word)
 						tempDate, err := time.Parse("01-02-06", word)
 						if err != nil {
-							panic(err)
+							return fmt.Errorf("erro. não consegui identificar a string hora na linha %v.... abortando", i+1)
+
 						}
 						date = tempDate.Format("02/01/2006")
 					}
@@ -120,6 +135,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 						rodovia = "163"
 					} else if strings.Contains(word, "364") {
 						rodovia = "364"
+					} else {
+						return fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
 					}
 				} else if j == 5 {
 					kmInicial = word
@@ -128,18 +145,22 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 				} else if j == 7 {
 					if strings.HasPrefix(word, "c") {
 						sentido = "Crescente"
-					} else {
+					} else if strings.HasPrefix(word, "d") {
 						sentido = "Decrescente"
+					} else {
+						return fmt.Errorf("erro. não consegui identificar o sentido na linha %v.... abortando", i+1)
 					}
 					var err error
 					kmInicialDouble, err = strconv.ParseFloat(kmInicial, 32)
 					if err != nil {
-						panic(err)
+						return fmt.Errorf("erro. não consegui identificar o km inicial na linha %v.... abortando", i+1)
+
 					}
 
 					kmFinalDouble, err = strconv.ParseFloat(kmFinal, 32)
 					if err != nil {
-						panic(err)
+						err := fmt.Errorf("erro. não consegui identificar o km final na linha %v.... abortando", i+1)
+						return err
 					}
 
 					if sentido == "Crescente" {
@@ -159,10 +180,13 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 					kmInicial = strings.ReplaceAll(kmInicial, ".", ",")
 
 				} else if j == 8 {
-					if strings.Contains(word, "p") {
+					if strings.Contains(word, "pp") {
 						pista = "1"
-					} else {
+					} else if strings.Contains(word, "pm") {
 						pista = "2"
+					} else {
+						err := fmt.Errorf("erro. não consegui identificar a Pista na linha %v Principal ou Marginal? deve ser \"pp\" ou \"pm\".... abortando", i+1)
+						return err
 					}
 
 				} else if j == 9 {
@@ -189,14 +213,14 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 
 						fmt.Println("local Repetido")
 						caption = IsLocationValid(caption, &local)
-						saveFotosOnLocal(local.NumIdentificacao, caption, &previousLocal)
+						saveFotosOnLocal(local.NumIdentificacao, caption, &previousLocal, listaGeo)
 
 					} else {
 						local.TroID = tro.ID
 						fmt.Println("salvando local .........................")
 						db.Create(&local)
 						caption = IsLocationValid(caption, &local)
-						saveFotosOnLocal(local.NumIdentificacao, caption, &local)
+						saveFotosOnLocal(local.NumIdentificacao, caption, &local, listaGeo)
 						previousLocal = local
 					}
 
@@ -209,6 +233,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) {
 		}
 	}
 	checkForDuplicateTime()
+
+	return nil
 }
 
 type compareTroTime struct {

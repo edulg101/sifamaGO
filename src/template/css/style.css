@@ -1,0 +1,98 @@
+body {
+    font: Montserrat;
+    font-size: 32px;
+    color: rgb(58, 58, 58) ;
+}
+
+.title {
+    text-align: center;
+    font-weight: 600;
+    font-style: italic;
+    padding-top: 50px;
+}
+
+
+.tro {
+    font-size: 0.7em;
+    
+
+}
+
+.local-title {
+    font-size: 0.6em;
+    font-style: italic;
+    width: 100%;
+
+}
+
+.dnit {
+    background-color: greenyellow;
+}
+
+.disposicao {
+    font-size: 0.5em;
+    font-style: italic;
+}
+
+.geotag {
+    font-size: 0.5em;
+    font-style: italic;
+    margin: auto;
+    width: auto;
+
+    display: inline-block;
+}
+
+.geotag a:link, a:visited{
+    color: rgb(91, 94, 91);
+    
+}
+  
+  .geotag a:hover {
+    text-decoration:rgb(44, 44, 44);
+    font-weight: 600;
+  }
+  
+  .geotag a:active {
+    text-decoration: underline;
+  }
+
+
+.justifyblock {
+    justify-content: center;
+}
+
+
+
+
+#map {
+    height: 1000px;
+    width: 100%;
+}
+
+.link {
+    font-size: 0.5em;
+    font-style: italic;
+    margin: auto;
+    width: auto;
+
+    display: inline-block;
+}
+
+.link a:link{
+    color: honeydew;
+    
+}
+.link a:visited {
+    color: honeydew;
+  }
+  
+  .link a:hover {
+    text-decoration:lightpink;
+    font-weight: 300;
+  }
+  
+  .link a:active {
+    text-decoration: underline;
+  }
+

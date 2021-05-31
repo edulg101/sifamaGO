@@ -2,22 +2,33 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"image"
 	"image/color"
 	"image/jpeg"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"sifamaGO/db"
-	"sifamaGO/util"
+	"sifamaGO/src/db"
+	"sifamaGO/src/util"
 
 	"github.com/fogleman/gg"
+	"github.com/rwcarlsen/goexif/exif"
 )
 
+type GeoUtil struct {
+	difLat  float64
+	difLong float64
+	index   int
+}
+
 func populateFotosOnDB(path string) {
+
+	var lat, long float64
 
 	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -25,17 +36,39 @@ func populateFotosOnDB(path string) {
 
 		}
 
-		_, name := filepath.Split(currentPath)
+		base, name := filepath.Split(currentPath)
 		if !info.IsDir() && (strings.HasSuffix(name, "jpg") || strings.HasSuffix(name, "jpeg") || strings.HasSuffix(name, "png")) {
 			name = CheckForNameSize(currentPath)
+			currentPath = filepath.Join(base, name)
 
 			url := filepath.Join("fotos", name)
 			url = filepath.ToSlash(url)
 			urlp := template.URL(url)
+
+			imageRdr, err := os.Open(currentPath)
+			if err != nil {
+				fmt.Println("nao consegui ler o arquivo")
+			}
+
+			metaData, err := exif.Decode(imageRdr)
+			if err != nil {
+				fmt.Println("nao consegui Extrair MEtadados da imagem")
+			} else {
+
+				lat, long, err = metaData.LatLong()
+				if err != nil {
+					fmt.Println("nao consegui Extrair Gps da imagem")
+				}
+			}
+
 			image := Foto{
-				Nome:    name,
-				Path:    template.URL(currentPath),
-				UrlPath: urlp}
+				Nome:      name,
+				Path:      template.URL(currentPath),
+				UrlPath:   urlp,
+				Latitude:  lat,
+				Longitude: long,
+			}
+
 			db.GetDB().Create(&image)
 		}
 		return err
@@ -46,10 +79,12 @@ func populateFotosOnDB(path string) {
 	}
 }
 
-func saveFotosOnLocal(IdColuna, caption string, local *Local) {
+func saveFotosOnLocal(IdColuna, caption string, local *Local, listaGeo []Geolocation) {
 
 	var fotos []Foto
+
 	db.GetDB().Find(&fotos)
+
 	// re := regexp2.MustCompile(IdColuna`(?!\\d+)`, 1)
 	for _, foto := range fotos {
 		name := foto.Nome
@@ -60,6 +95,16 @@ func saveFotosOnLocal(IdColuna, caption string, local *Local) {
 		m := re.MatchString(name)
 
 		if m {
+			rodovia, km, valid := GetLocation(foto.Latitude, foto.Longitude, listaGeo)
+			if valid {
+				foto.GeoRodovia = rodovia
+				foto.GeoKm = km
+
+				if math.Abs(local.KmInicialDouble-km) < 1 && (strings.Contains(rodovia, local.Rodovia)) {
+					foto.GeoMatch = true
+
+				}
+			}
 
 			foto.LocalID = local.ID
 			if foto.Legenda == "" {
@@ -67,6 +112,7 @@ func saveFotosOnLocal(IdColuna, caption string, local *Local) {
 			}
 			db.GetDB().Save(&foto)
 			local.Fotos = append(local.Fotos, foto)
+			db.GetDB().Save(&local)
 
 			merge(string(foto.Path), foto.Legenda)
 		}
@@ -162,4 +208,57 @@ func merge(filePath, caption string) {
 
 	jpeg.Encode(final, image, nil)
 
+}
+
+func GetLocation(latitude, longitude float64, listaGeo []Geolocation) (string, float64, bool) {
+	if latitude < -17.5197411486680 || latitude == -1.0 {
+		return "", -1, false
+	}
+
+	difLat := 0.0
+	difLong := 0.0
+	precisaoEmMetros := 50.0 // pode mudar
+	precisaoEmGraus := precisaoEmMetros / 111139
+	var filteredGeoList []GeoUtil
+
+	for i, loc := range listaGeo {
+		difLat = math.Abs(math.Abs(loc.Latitude) - math.Abs(latitude))
+		difLong = math.Abs(math.Abs(loc.Longitude) - math.Abs(longitude))
+
+		if difLat <= precisaoEmGraus && difLong <= precisaoEmGraus {
+			geoUtil := GeoUtil{
+				difLat:  difLat,
+				difLong: difLong,
+				index:   i,
+			}
+			filteredGeoList = append(filteredGeoList, geoUtil)
+		}
+	}
+	if len(filteredGeoList) < 1 {
+		return "", -1, false
+	}
+
+	var listClosests []closestsLocations
+
+	for _, x := range filteredGeoList {
+		avgDif := (x.difLong + x.difLat) / 2
+		listClosests = append(listClosests, closestsLocations{avgDif, x.index})
+	}
+
+	minorIndex := listClosests[len(listClosests)-1].index
+	for z := 0; z < len(listClosests); z++ {
+		for h := z + 1; h < len(listClosests); h++ {
+			if listClosests[z].avgDif < listClosests[h].avgDif {
+				minorIndex = listClosests[z].index
+			}
+		}
+	}
+
+	return listaGeo[minorIndex].Rodovia, listaGeo[minorIndex].Km, true
+
+}
+
+type closestsLocations struct {
+	avgDif float64
+	index  int
 }

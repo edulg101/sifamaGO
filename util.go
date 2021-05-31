@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sifamaGO/db"
+	"sifamaGO/src/db"
 	"strconv"
 	"strings"
 	"time"
@@ -30,8 +30,6 @@ func CheckForNameSize(fullPath string) string {
 	//check if FileName is too large
 	fileName := filepath.Base(fullPath)
 	path := filepath.Dir(fullPath)
-	fmt.Println("FULLPATH", fullPath)
-	fmt.Println("PATH", path)
 
 	nameLength := len(fileName)
 	if nameLength > 90 {
@@ -134,8 +132,6 @@ func InterpolationKm(km float64) float64 {
 
 func CheckKm(rodovia string, km float64, palavraChave string) (bool, bool) {
 
-	fmt.Println("fora km ", km, IsTrechosDNIT(km))
-
 	disposicao := GetDisposicaoLegal(palavraChave)
 	edificacoes := false
 
@@ -154,7 +150,6 @@ func CheckKm(rodovia string, km float64, palavraChave string) (bool, bool) {
 		return (km < 120 || (km <= 855 && km >= 507.1)), false
 
 	case "364":
-		fmt.Println("dentro km ", km, IsTrechosDNIT(km))
 		if km < 201 || km > 588.2 {
 			return false, false
 		} else if km <= 211.3 {

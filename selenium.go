@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"sifamaGO/util"
+	"sifamaGO/src/util"
 
 	"github.com/tebeka/selenium"
 )
@@ -50,7 +50,7 @@ func InicioDigitacao() {
 	go KeepMouseMoving()
 
 	ops := []selenium.ServiceOption{}
-	_, err := selenium.NewChromeDriverService(util.SELENIUMPATH, util.PORT, ops...)
+	_, err := selenium.NewChromeDriverService(util.SELENIUMPATH, util.SeleniumPORT, ops...)
 	if err != nil {
 		fmt.Printf("Error starting the ChromeDriver server: %v", err)
 	}

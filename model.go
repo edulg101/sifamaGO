@@ -8,13 +8,18 @@ import (
 
 type Foto struct {
 	gorm.Model
-	ID      uint
-	Nome    string
-	Path    template.URL
-	Legenda string
-	LocalID uint
-	Local   Local
-	UrlPath template.URL
+	ID         uint
+	Nome       string
+	Path       template.URL
+	Legenda    string
+	LocalID    uint
+	Local      Local
+	Latitude   float64
+	Longitude  float64
+	GeoRodovia string
+	GeoKm      float64
+	GeoMatch   bool
+	UrlPath    template.URL
 }
 
 type Local struct {
@@ -65,4 +70,13 @@ type TroModel struct {
 	TotalTro   int
 	Folders    []Folder
 	TotalFotos int
+}
+
+type Geolocation struct {
+	gorm.Model
+	ID        uint `gorm:"primaryKey; autoIncrement"`
+	Rodovia   string
+	Km        float64
+	Latitude  float64 `gorm:"precision:20"`
+	Longitude float64
 }

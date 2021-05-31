@@ -1,27 +1,37 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/zserge/lorca"
 
-	"sifamaGO/db"
-	"sifamaGO/util"
+	"sifamaGO/src/config"
+	"sifamaGO/src/db"
+	"sifamaGO/src/util"
 )
 
-// var indexHTML embed.FS
+var PORT string
 
 func main() {
+
+	// util.ToAscII("D:\\sifamadocs\\inPics\\input")
+
+	ui, er := lorca.New("", "", 1000, 800)
+	if er != nil {
+		log.Fatal(er)
+	}
+	defer ui.Close()
 
 	db.ConectDB()
 
 	db.GetDB().AutoMigrate(&Tro{})
 	db.GetDB().AutoMigrate(&Local{})
 	db.GetDB().AutoMigrate(&Foto{})
-	// populateFotosOnDB(ORIGINIMAGEPATH)
-	// _, err := importSpreadSheet(SPREADSHEETPATH)
-	// errorHandle(err)
 
 	r := mux.NewRouter()
 
@@ -31,28 +41,47 @@ func main() {
 
 	r.HandleFunc("/favicon.ico", FaviconHandler)
 
+	r.HandleFunc("/map", Map).GetMethods()
+
 	staticDir := util.OUTPUTIMAGEFOLDER
 	staticURL := "/fotos/"
 	r.PathPrefix(staticURL).Handler(http.StripPrefix(staticURL, http.FileServer(http.Dir(staticDir))))
 
 	// Logo Router and static images
+	imgesStaticDir := filepath.Join("src", "template", "images")
+	cssStaticPath := filepath.Join("src", "template", "css")
+	scriptStaticPath := filepath.Join("src", "template", "script")
 
-	imgesStaticDir := filepath.Join("template", "images")
-	cssStaticPath := filepath.Join("template", "css")
-	scriptStaticPath := filepath.Join("template", "script")
-
+	// a principio somente para o logo
 	imagesStaticURL := "/images/"
 	r.PathPrefix(imagesStaticURL).Handler(http.StripPrefix(imagesStaticURL, http.FileServer(http.Dir(imgesStaticDir))))
 	// Css Router
+
 	cssUrlPath := "/css/"
 	r.PathPrefix(cssUrlPath).Handler(http.StripPrefix(cssUrlPath, http.FileServer(http.Dir(cssStaticPath))))
 	// Script Router
+
 	scriptUrlPath := "/script/"
 	r.PathPrefix(scriptUrlPath).Handler(http.StripPrefix(scriptUrlPath, http.FileServer(http.Dir(scriptStaticPath))))
 
-	err := http.ListenAndServe(":8080", r)
-	panic(err)
+	PORT, _, _ = config.GetEnv()
 
+	go callUI(ui)
+
+	fmt.Println("porta", PORT)
+
+	err := http.ListenAndServe(":"+PORT, r)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func callUI(ui lorca.UI) {
+	time.Sleep(time.Second / 2)
+	add := "http://localhost:" + PORT
+	fmt.Println(PORT)
+	ui.Load(add)
 }
 
 // tmpl := template.Must(template.ParseFiles("template/index.html"))
