@@ -1,2 +1,4 @@
 constants.go
 .env
+*.exe
+*.db

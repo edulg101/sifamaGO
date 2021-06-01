@@ -145,10 +145,6 @@ func Map(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for _, loc := range pontos {
-		fmt.Printf("%s Km %v\n", loc.Rodovia, loc.Km)
-	}
-
 	data := Pontos{
 		Points: pontos,
 	}

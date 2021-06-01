@@ -17,6 +17,7 @@ import (
 	"sifamaGO/src/util"
 
 	"github.com/fogleman/gg"
+	"github.com/nfnt/resize"
 	"github.com/rwcarlsen/goexif/exif"
 )
 
@@ -27,8 +28,6 @@ type GeoUtil struct {
 }
 
 func populateFotosOnDB(path string) {
-
-	var lat, long float64
 
 	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -49,12 +48,12 @@ func populateFotosOnDB(path string) {
 			if err != nil {
 				fmt.Println("nao consegui ler o arquivo")
 			}
+			lat, long := 0.0, 0.0
 
 			metaData, err := exif.Decode(imageRdr)
 			if err != nil {
 				fmt.Println("nao consegui Extrair MEtadados da imagem")
 			} else {
-
 				lat, long, err = metaData.LatLong()
 				if err != nil {
 					fmt.Println("nao consegui Extrair Gps da imagem")
@@ -114,6 +113,10 @@ func saveFotosOnLocal(IdColuna, caption string, local *Local, listaGeo []Geoloca
 			local.Fotos = append(local.Fotos, foto)
 			db.GetDB().Save(&local)
 
+			file, err := os.Open(string(foto.Path))
+			errorHandle(err)
+			file.Close()
+
 			merge(string(foto.Path), foto.Legenda)
 		}
 		// if err != nil {
@@ -127,13 +130,43 @@ func merge(filePath, caption string) {
 	file, err := os.Open(filePath)
 	errorHandle(err)
 
-	img, _, _ := image.DecodeConfig(file)
-	defer file.Close()
-
+	img, str, err := image.DecodeConfig(file)
 	width := img.Width
 	height := img.Height
 
-	captionHeigth := 34
+	fmt.Println(str) // type
+	fmt.Println(err)
+
+	file.Close()
+
+	file, err = os.Open(filePath)
+	errorHandle(err)
+
+	imagejpg, err := jpeg.Decode(file)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println(file.Name())
+	}
+
+	if width > 500 {
+
+		file.Close()
+
+		resizeImage(imagejpg, filePath)
+
+		file, err = os.Open(filePath)
+		errorHandle(err)
+
+		img, _, _ = image.DecodeConfig(file)
+
+		width = img.Width
+		height = img.Height
+
+	}
+
+	fontSize := (float64(width) * 0.036)
+
+	captionHeigth := int(float64(height) / 19.6)
 
 	words := strings.Split(caption, " ")
 
@@ -169,27 +202,24 @@ func merge(filePath, caption string) {
 		lines = append(lines, line3)
 	}
 
-	dc := gg.NewContext(width, height+((len(lines)-1)*34))
+	dc := gg.NewContext(width, height+((len(lines)-1)*captionHeigth))
 
-	y := height - 34
+	y := height - captionHeigth
 	for i := 0; i < len(lines); i++ {
 		dc.SetColor(color.White)
-		dc.DrawRectangle(0, float64(y), float64(width), 34)
-
+		dc.DrawRectangle(0, float64(y), float64(width), float64(captionHeigth))
 		dc.Fill()
-
-		y = y + 34
-
-		captionY := float64((height - 34) + (34 * i) + captionHeigth/2.0)
+		y += captionHeigth
+		captionY := float64((height - captionHeigth) + (captionHeigth * i) + captionHeigth/2.0)
 
 		dc.SetColor(color.Gray16{0x3030})
-		if err := dc.LoadFontFace(util.FONTPATH, 18); err != nil {
+		if err := dc.LoadFontFace(util.FONTPATH, fontSize); err != nil {
 			panic(err)
 		}
 		dc.DrawStringAnchored(lines[i], float64(width)/2, captionY, 0.5, 0.5)
 	}
 	im, _ := gg.LoadImage(filePath)
-	dc.DrawImage(im, 0, -34)
+	dc.DrawImage(im, 0, -captionHeigth)
 	image := dc.Image()
 	_, fileName := filepath.Split(filePath)
 
@@ -261,4 +291,37 @@ func GetLocation(latitude, longitude float64, listaGeo []Geolocation) (string, f
 type closestsLocations struct {
 	avgDif float64
 	index  int
+}
+
+func resizeImage(img image.Image, path string) *os.File {
+	// decode jpeg into image.Image
+
+	temp := filepath.Join(util.OUTPUTIMAGEFOLDER, "temp")
+	_, err := os.Open(temp)
+	if err != nil {
+		os.MkdirAll(temp, os.ModePerm)
+	}
+
+	// resize to width 1000 using Lanczos resampling
+	// and preserve aspect ratio
+	m := resize.Resize(500, 0, img, resize.Bicubic)
+
+	err = os.Remove(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	outFile, err := os.Create(path)
+	errorHandle(err)
+
+	err = jpeg.Encode(outFile, m, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return outFile
+	// _, err = io.Copy(outFile, rc)
+
+	// Close the file without defer to close before next iteration of loop
+
 }

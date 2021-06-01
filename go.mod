@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.7 // indirect
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
 	github.com/tebeka/selenium v0.9.9
 	github.com/webview/webview v0.0.0-20210330151455-f540d88dde4e // indirect

@@ -74,7 +74,7 @@
                         class=" {{if not .GeoMatch}} bg-danger text-white link{{else}} geotag {{end}}">
                         <div class=>
                             {{if eq .GeoRodovia ""}}
-                            Não deu
+                            - Imagem sem Metadados -
                             {{else}}
                             Localização pelo GPS: BR-{{.GeoRodovia}}/MT km {{printf "%.3f" .GeoKm}}
                             <a href="http://maps.google.com/maps?q=&layer=c&cbll={{.Latitude}},{{.Longitude}}"
