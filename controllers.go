@@ -24,7 +24,6 @@ func Report(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "POST" {
 		fmt.Println("metodo post entrou")
-		// Call ParseForm() to parse the raw query and update r.PostForm and r.Form.
 
 		if err := r.ParseForm(); err != nil {
 			fmt.Fprintf(w, "ParseForm() err: %v", err)
@@ -92,9 +91,16 @@ func Home(w http.ResponseWriter, r *http.Request) {
 			util.TITLE = "Tros Emitidos em " + today
 		}
 
-		populateFotosOnDB(util.ORIGINIMAGEPATH)
+		start := time.Now()
+
+		//***
+		// populateFotosOnDB(util.ORIGINIMAGEPATH)
 		err := ImportSpreadSheet(util.SPREADSHEETPATH)
+
+		fmt.Printf("tempo: %v\n", time.Since(start))
+
 		if err != nil {
+			fmt.Println(err)
 			w.WriteHeader(http.StatusNotAcceptable)
 			w.Write([]byte(fmt.Sprintln(err)))
 		}
@@ -110,17 +116,27 @@ func reportGet(w http.ResponseWriter) {
 	var tro Tro
 	tros := tro.FindAll()
 
+	var localWithNoFotos []Local
+
 	totalTro := len(tros)
 	totalFotos := 0
 	for _, tro := range tros {
 		totalFotos += len(tro.Locais)
+		locais := tro.Locais
+		for _, loc := range locais {
+			if len(loc.Fotos) < 1 {
+				localWithNoFotos = append(localWithNoFotos, loc)
+			}
+		}
+
 	}
 
 	data := TroModel{
-		Title:      util.TITLE,
-		Tro:        tros,
-		TotalTro:   totalTro,
-		TotalFotos: totalFotos,
+		Title:            util.TITLE,
+		Tro:              tros,
+		TotalTro:         totalTro,
+		TotalFotos:       totalFotos,
+		LocalWithNoFotos: localWithNoFotos,
 	}
 
 	tmpl := template.Must(template.ParseFiles("src/template/report.html"))

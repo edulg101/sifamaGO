@@ -142,6 +142,8 @@ func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) {
 
 	locais := tro.Locais
 
+	go resizeImageAndCopyMetadataFromOriginal3(&locais)
+
 	palavraChave := tro.PalavraChave
 
 	artigoList := GetDisposicaoLegal(palavraChave)
@@ -371,4 +373,21 @@ func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) {
 
 	fmt.Println("OK ")
 
+}
+
+func resizeImageAndCopyMetadataFromOriginal3(locaisP *[]Local) {
+	locais := *locaisP
+
+	for _, local := range locais {
+		fotos := local.Fotos
+		for _, foto := range fotos {
+			resizeImageAndCopyMetadataFromOriginal1(&foto)
+		}
+	}
+}
+func resizeImageAndCopyMetadataFromOriginal1(foto *Foto) {
+	originPath := foto.OriginPath
+	destPath := filepath.Join(util.OUTPUTIMAGEFOLDER, foto.Nome)
+	// **
+	resizeImageAndCopyMetadataFromOriginal(destPath, originPath, util.MAXIMAGEWIDTH)
 }

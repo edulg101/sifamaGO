@@ -15,11 +15,19 @@ import (
 	"sifamaGO/src/util"
 )
 
-var PORT string
-
 func main() {
 
-	// util.ToAscII("D:\\sifamadocs\\inPics\\input")
+	err1 := config.GetEnv()
+	if err1 != nil {
+		panic(err1)
+	}
+	fmt.Println(util.ROOTPATH)
+	fmt.Println(util.PWD)
+	fmt.Println(util.ROOTPATH)
+
+	// path := "D:\\OneDrive - ANTT- Agencia Nacional de Transportes Terrestres\\CRO\\RTA\\2021_05_28 ACOMPANHAMENTO\\Anexos"
+
+	// err5 := resizeAllImagesInFolder(path, 600)
 
 	ui, er := lorca.New("", "", 1000, 800)
 	if er != nil {
@@ -64,13 +72,11 @@ func main() {
 	scriptUrlPath := "/script/"
 	r.PathPrefix(scriptUrlPath).Handler(http.StripPrefix(scriptUrlPath, http.FileServer(http.Dir(scriptStaticPath))))
 
-	PORT, _, _ = config.GetEnv()
-
 	go callUI(ui)
 
-	fmt.Println("porta", PORT)
+	fmt.Println("porta", util.PORT)
 
-	err := http.ListenAndServe(":"+PORT, r)
+	err := http.ListenAndServe(":"+util.PORT, r)
 	if err != nil {
 		panic(err)
 	}
@@ -79,8 +85,7 @@ func main() {
 
 func callUI(ui lorca.UI) {
 	time.Sleep(time.Second / 2)
-	add := "http://localhost:" + PORT
-	fmt.Println(PORT)
+	add := "http://localhost:" + util.PORT
 	ui.Load(add)
 }
 

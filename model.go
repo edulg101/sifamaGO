@@ -20,6 +20,7 @@ type Foto struct {
 	GeoKm      float64
 	GeoMatch   bool
 	UrlPath    template.URL
+	OriginPath string
 }
 
 type Local struct {
@@ -65,11 +66,12 @@ type HomeModel struct {
 }
 
 type TroModel struct {
-	Title      string
-	Tro        []Tro
-	TotalTro   int
-	Folders    []Folder
-	TotalFotos int
+	Title            string
+	Tro              []Tro
+	TotalTro         int
+	Folders          []Folder
+	TotalFotos       int
+	LocalWithNoFotos []Local
 }
 
 type Geolocation struct {

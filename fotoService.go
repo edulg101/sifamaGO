@@ -9,6 +9,7 @@ import (
 	"image/jpeg"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -27,7 +28,99 @@ type GeoUtil struct {
 	index   int
 }
 
+func populateFotosOnDB2(path, localId, caption string, local *Local, listaGeo []Geolocation) error {
+
+	var lat float64
+	var long float64
+	var geoMatch bool
+
+	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			panic(err)
+
+		}
+
+		_, name := filepath.Split(currentPath)
+
+		re := regexp.MustCompile(localId + `[^0-9]`)
+		m := re.MatchString(name)
+
+		if m {
+			imageRdr, err := os.Open(currentPath)
+			if err != nil {
+				fmt.Println("nao consegui ler o arquivo")
+			}
+
+			metaData, err := exif.Decode(imageRdr)
+
+			// config, _, _ := image.DecodeConfig(imageRdr)
+			// width := config.Width
+			// fmt.Println(width)
+
+			imageRdr.Close()
+
+			if err != nil {
+				fmt.Println("nao consegui Extrair MEtadados da imagem")
+			} else {
+
+				lat, long, err = metaData.LatLong()
+
+				if err != nil {
+					fmt.Println("nao consegui Extrair Gps da imagem")
+				}
+			}
+
+			rodovia, km, valid := GetLocation(lat, long, listaGeo)
+			if valid {
+
+				if math.Abs(local.KmInicialDouble-km) < 1 && (strings.Contains(rodovia, local.Rodovia)) {
+					geoMatch = true
+
+				}
+			}
+
+			url := filepath.Join("fotos", name)
+			url = filepath.ToSlash(url)
+			urlp := template.URL(url)
+
+			name = CheckForNameSize(name)
+
+			l := *local
+
+			foto := Foto{
+				Nome:       name,
+				Path:       template.URL(currentPath),
+				Legenda:    caption,
+				LocalID:    local.ID,
+				Local:      l,
+				Latitude:   lat,
+				Longitude:  long,
+				GeoRodovia: rodovia,
+				GeoKm:      km,
+				GeoMatch:   geoMatch,
+				UrlPath:    urlp,
+				OriginPath: currentPath,
+			}
+
+			db.GetDB().Create(&foto)
+			local.Fotos = append(local.Fotos, foto)
+			db.GetDB().Save(&local)
+			err = foto.merge()
+			if err != nil {
+				fmt.Println("erro no foto merge")
+				return err
+			}
+
+		}
+		return err
+	})
+	return err
+}
+
 func populateFotosOnDB(path string) {
+
+	var lat float64
+	var long float64
 
 	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -48,24 +141,44 @@ func populateFotosOnDB(path string) {
 			if err != nil {
 				fmt.Println("nao consegui ler o arquivo")
 			}
-			lat, long := 0.0, 0.0
 
 			metaData, err := exif.Decode(imageRdr)
+
+			// config, _, _ := image.DecodeConfig(imageRdr)
+			// width := config.Width
+			// fmt.Println(width)
+
+			imageRdr.Close()
+
 			if err != nil {
 				fmt.Println("nao consegui Extrair MEtadados da imagem")
 			} else {
+
 				lat, long, err = metaData.LatLong()
+
 				if err != nil {
 					fmt.Println("nao consegui Extrair Gps da imagem")
 				}
 			}
 
+			// ***
+
+			// if width > int(util.MAXIMAGEWIDTH) {
+
+			// 	err = resizeImageAndCopyMetadata(currentPath, util.MAXIMAGEWIDTH)
+
+			// 	if err != nil {
+			// 		fmt.Println(err)
+			// 	}
+			// }
+
 			image := Foto{
-				Nome:      name,
-				Path:      template.URL(currentPath),
-				UrlPath:   urlp,
-				Latitude:  lat,
-				Longitude: long,
+				Nome:       name,
+				Path:       template.URL(currentPath),
+				UrlPath:    urlp,
+				Latitude:   lat,
+				Longitude:  long,
+				OriginPath: currentPath,
 			}
 
 			db.GetDB().Create(&image)
@@ -78,19 +191,16 @@ func populateFotosOnDB(path string) {
 	}
 }
 
-func saveFotosOnLocal(IdColuna, caption string, local *Local, listaGeo []Geolocation) {
+func saveFotosOnLocal(IdColuna, caption string, local *Local, listaGeo []Geolocation) error {
 
 	var fotos []Foto
 
 	db.GetDB().Find(&fotos)
 
-	// re := regexp2.MustCompile(IdColuna`(?!\\d+)`, 1)
 	for _, foto := range fotos {
 		name := foto.Nome
-		// 	m, err := re.MatchString(name)
 
 		re := regexp.MustCompile(IdColuna + `[^0-9]`)
-
 		m := re.MatchString(name)
 
 		if m {
@@ -114,55 +224,43 @@ func saveFotosOnLocal(IdColuna, caption string, local *Local, listaGeo []Geoloca
 			db.GetDB().Save(&local)
 
 			file, err := os.Open(string(foto.Path))
-			errorHandle(err)
+			if err != nil {
+				fmt.Println("erro no open")
+				return err
+			}
+
 			file.Close()
 
-			merge(string(foto.Path), foto.Legenda)
+			err = foto.merge()
+			if err != nil {
+				fmt.Println("erro no foto merge")
+				return err
+			}
+
 		}
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
 	}
+	return nil
 }
 
-func merge(filePath, caption string) {
+func (foto Foto) merge() error {
+
+	caption := foto.Legenda
+	filePath := string(foto.Path)
 
 	file, err := os.Open(filePath)
-	errorHandle(err)
+	if err != nil {
+		return err
+	}
 
-	img, str, err := image.DecodeConfig(file)
+	img, _, err := image.DecodeConfig(file)
+	if err != nil {
+		return err
+	}
+
 	width := img.Width
 	height := img.Height
 
-	fmt.Println(str) // type
-	fmt.Println(err)
-
-	file.Close()
-
-	file, err = os.Open(filePath)
-	errorHandle(err)
-
-	imagejpg, err := jpeg.Decode(file)
-	if err != nil {
-		fmt.Println(err)
-		fmt.Println(file.Name())
-	}
-
-	if width > 500 {
-
-		file.Close()
-
-		resizeImage(imagejpg, filePath)
-
-		file, err = os.Open(filePath)
-		errorHandle(err)
-
-		img, _, _ = image.DecodeConfig(file)
-
-		width = img.Width
-		height = img.Height
-
-	}
+	defer file.Close()
 
 	fontSize := (float64(width) * 0.036)
 
@@ -191,7 +289,7 @@ func merge(filePath, caption string) {
 		}
 		if len(line3) > 50 {
 			err := errors.New("extensão máxima da descrição de fotos atingida. diminua a descrição")
-			errorHandle(err)
+			return err
 		}
 	}
 	lines = append(lines, line1)
@@ -214,13 +312,22 @@ func merge(filePath, caption string) {
 
 		dc.SetColor(color.Gray16{0x3030})
 		if err := dc.LoadFontFace(util.FONTPATH, fontSize); err != nil {
-			panic(err)
+			if err != nil {
+				return err
+			}
 		}
 		dc.DrawStringAnchored(lines[i], float64(width)/2, captionY, 0.5, 0.5)
 	}
 	im, _ := gg.LoadImage(filePath)
 	dc.DrawImage(im, 0, -captionHeigth)
 	image := dc.Image()
+
+	currentWidth := dc.Width()
+
+	if currentWidth > int(util.MAXIMAGEWIDTH) {
+		image = resize.Resize(util.MAXIMAGEWIDTH, 0, image, resize.Bicubic)
+	}
+
 	_, fileName := filepath.Split(filePath)
 
 	_, err = os.Stat(util.OUTPUTIMAGEFOLDER)
@@ -232,11 +339,25 @@ func merge(filePath, caption string) {
 
 	final, err := os.Create(target)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer final.Close()
 
-	jpeg.Encode(final, image, nil)
+	err = jpeg.Encode(final, image, nil)
+	if err != nil {
+		return fmt.Errorf("não foi possivel codificar para jpeg o arquivo %s", foto.Path)
+	}
+
+	final.Close()
+
+	//  ***
+	// fmt.Printf("inserindo GPS no arquivo %s\n", target)
+	// err = copyAllMetadata(string(foto.Path), target)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return err
+	// }
+
+	return nil
 
 }
 
@@ -293,20 +414,13 @@ type closestsLocations struct {
 	index  int
 }
 
-func resizeImage(img image.Image, path string) *os.File {
-	// decode jpeg into image.Image
-
-	temp := filepath.Join(util.OUTPUTIMAGEFOLDER, "temp")
-	_, err := os.Open(temp)
-	if err != nil {
-		os.MkdirAll(temp, os.ModePerm)
-	}
+func resizeImage(img image.Image, path string, size uint) error {
 
 	// resize to width 1000 using Lanczos resampling
 	// and preserve aspect ratio
-	m := resize.Resize(500, 0, img, resize.Bicubic)
+	m := resize.Resize(size, 0, img, resize.Bicubic)
 
-	err = os.Remove(path)
+	err := os.Remove(path)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -319,9 +433,188 @@ func resizeImage(img image.Image, path string) *os.File {
 		fmt.Println(err)
 	}
 
-	return outFile
+	err = outFile.Close()
+
+	if err != nil {
+		return err
+	}
 	// _, err = io.Copy(outFile, rc)
 
 	// Close the file without defer to close before next iteration of loop
+
+	return nil
+}
+
+func insertGPSIntoImage(filepath string, lat, long float64) error {
+
+	command := "exiftool"
+	longRef := "West"
+	latRef := "South"
+
+	newLat := fmt.Sprintf("-XMP:GPSLatitude='%f'", lat)
+	newLong := fmt.Sprintf("-XMP:GPSLongitude='%f'", long)
+	newLatRef := fmt.Sprintf("-GPSLongitudeRef='%s'", longRef)
+	newLongRef := fmt.Sprintf("-GPSLatitudeRef='%s'", latRef)
+	newLatExif := fmt.Sprintf("-exif:gpslatitude='%f'", lat)
+	newLatExifRef := "-exif:gpslongituderef=W"
+	newLongExif := fmt.Sprintf("-exif:gpslongitude='%f'", long)
+	newLongExifRef := "-exif:gpslatituderef=S"
+
+	override := "-overwrite_original"
+
+	cmd := exec.Command(command, newLat, newLong, newLongExif, newLatExif, newLatExifRef, newLongExifRef, newLatRef, newLongRef, filepath, override)
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Println(filepath)
+		fmt.Println("lat ", lat)
+		fmt.Println("long ", long)
+		return fmt.Errorf("não foi possível inserir as informações de GPS no arquivo %s", filepath)
+	}
+	return nil
+
+}
+
+func copyAllMetadata(originPath, targetPath string) error {
+
+	fmt.Println("tentando copiar metadados de:")
+	fmt.Printf("%s para %s\n", originPath, targetPath)
+
+	command := "exiftool"
+	override := "-overwrite_original"
+	cmd := exec.Command(command, "-TagsFromFile", originPath, targetPath, override)
+	returnMessage, err := cmd.Output()
+	fmt.Println(string(returnMessage))
+	if err != nil {
+		return fmt.Errorf(string(returnMessage))
+	}
+	return nil
+
+}
+func resizeImageAndCopyMetadata(imagePath string, size uint) error {
+
+	var img image.Image
+
+	file, err := os.Open(imagePath)
+	if err != nil {
+		return err
+	}
+
+	img, err = jpeg.Decode(file)
+
+	if err != nil {
+		return err
+	}
+
+	file.Close()
+
+	dir := filepath.Dir(imagePath)
+
+	oldFilePath := filepath.Join(dir, "temp.jpg")
+
+	err = os.Rename(imagePath, oldFilePath)
+
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	img = resize.Resize(size, 0, img, resize.Bicubic)
+
+	file, err = os.Create(imagePath)
+	if err != nil {
+		os.MkdirAll(imagePath, os.ModePerm)
+		file, err = os.Create(imagePath)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = jpeg.Encode(file, img, nil)
+	if err != nil {
+		return err
+	} else {
+		fmt.Println("Reduzindo arquivo:", imagePath)
+	}
+
+	file.Close()
+
+	err = copyAllMetadata(oldFilePath, imagePath)
+	if err != nil {
+		return err
+	}
+	err = os.Remove(oldFilePath)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}
+
+//ResizeAllImageInFolder will resize all image in a given Folder and Save with metadata.
+func ResizeAllImagesInFolder(path string, width uint) error {
+
+	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			panic(err)
+
+		}
+		_, name := filepath.Split(currentPath)
+
+		if !info.IsDir() && (strings.HasSuffix(name, "jpg") || strings.HasSuffix(name, "jpeg") || strings.HasSuffix(name, "png")) {
+			imgFile, err := os.Open(currentPath)
+			if err != nil {
+				return fmt.Errorf("não foi possível abrir imagem: %s", currentPath)
+			}
+			conf, _, err := image.DecodeConfig(imgFile)
+			defer imgFile.Close()
+			if err != nil {
+				return fmt.Errorf("não consegui abrir o arquivo: %s", currentPath)
+			}
+			if conf.Width > int(width) {
+				err = resizeImageAndCopyMetadata(currentPath, width)
+				if err != nil {
+					return fmt.Errorf("não foi possível reduzir o arquivo: %s", currentPath)
+				}
+			}
+
+		}
+		return err
+	})
+	return err
+}
+
+func resizeImageAndCopyMetadataFromOriginal(imagePath, originPath string, size uint) error {
+
+	file, err := os.Open(imagePath)
+	if err != nil {
+		return err
+	}
+
+	config, _, _ := image.DecodeConfig(file)
+
+	width := config.Width
+
+	file.Close()
+
+	if uint(width) > size {
+		file, _ := os.Open(imagePath)
+		img, _ := jpeg.Decode(file)
+		img = resize.Resize(size, 0, img, resize.Bicubic)
+		file.Close()
+		err = os.Remove(imagePath)
+		fmt.Println(err)
+		file, err = os.Create(imagePath)
+		fmt.Println(err)
+		err = jpeg.Encode(file, img, nil)
+		fmt.Println(err)
+		file.Close()
+
+	}
+
+	err = copyAllMetadata(originPath, imagePath)
+	if err != nil {
+		return err
+	}
+	return err
 
 }

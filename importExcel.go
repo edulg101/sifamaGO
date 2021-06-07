@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"sifamaGO/src/db"
+	"sifamaGO/src/util"
 	"sifamaGO/src/util/geo"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
@@ -57,8 +58,6 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 		for j, word := range row {
 			word = strings.ToLower(word)
 			word = strings.TrimSpace(word)
-			// coluna = rune(j) + coluna
-			// fmt.Printf("Célula %d - %s : %s\n ", i+1, string(coluna), word)
 
 			if strings.Contains(word, "de ident.") {
 				break
@@ -116,7 +115,6 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 						hora = tempDate.Format("15:04")
 
 					} else {
-						fmt.Println(word)
 						tempDate, err := time.Parse("01-02-06", word)
 						if err != nil {
 							return fmt.Errorf("erro. não consegui identificar a string hora na linha %v.... abortando", i+1)
@@ -213,14 +211,29 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 
 						fmt.Println("local Repetido")
 						caption = IsLocationValid(caption, &local)
-						saveFotosOnLocal(local.NumIdentificacao, caption, &previousLocal, listaGeo)
+
+						err := populateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &previousLocal, listaGeo)
+						//***
+						// err := saveFotosOnLocal(local.NumIdentificacao, caption, &previousLocal, listaGeo)
+						if err != nil {
+
+							return err
+						}
 
 					} else {
 						local.TroID = tro.ID
 						fmt.Println("salvando local .........................")
 						db.Create(&local)
 						caption = IsLocationValid(caption, &local)
-						saveFotosOnLocal(local.NumIdentificacao, caption, &local, listaGeo)
+						err := populateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &local, listaGeo)
+						//***
+						// err := saveFotosOnLocal(local.NumIdentificacao, caption, &local, listaGeo)
+						if err != nil {
+							fmt.Println("erro no saveFotos")
+
+							return err
+						}
+
 						previousLocal = local
 					}
 

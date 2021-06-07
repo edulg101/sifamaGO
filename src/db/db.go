@@ -17,7 +17,7 @@ func GetDB() *gorm.DB {
 func ConectDB() {
 	var err error
 	databaseName := ":memory:"
-	// databaseName := "gb11.db"
+	// databaseName := "gb9.db"
 
 	err = os.Remove(databaseName)
 	if err != nil {
