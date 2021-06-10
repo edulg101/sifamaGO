@@ -44,6 +44,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 	var rodovia string
 	var sentido string
 	var pista string
+	var estado string
+	var err error
 
 	var previousLocal Local
 	var listaGeo []Geolocation
@@ -127,15 +129,11 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 						hora = word
 					}
 				} else if j == 4 {
-					if strings.Contains(word, "070") {
-						rodovia = "70"
-					} else if strings.Contains(word, "163") {
-						rodovia = "163"
-					} else if strings.Contains(word, "364") {
-						rodovia = "364"
-					} else {
-						return fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
+					rodovia, estado, err = getEstadoERodovia(word, i)
+					if err != nil {
+						return err
 					}
+
 				} else if j == 5 {
 					kmInicial = word
 				} else if j == 6 {
@@ -148,7 +146,6 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 					} else {
 						return fmt.Errorf("erro. não consegui identificar o sentido na linha %v.... abortando", i+1)
 					}
-					var err error
 					kmInicialDouble, err = strconv.ParseFloat(kmInicial, 32)
 					if err != nil {
 						return fmt.Errorf("erro. não consegui identificar o km inicial na linha %v.... abortando", i+1)
@@ -194,6 +191,7 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 						Data:             date,
 						Hora:             hora,
 						Rodovia:          rodovia,
+						Estado:           estado,
 						KmInicial:        kmInicial,
 						KmInicialDouble:  kmInicialDouble,
 						KmFinal:          kmFinal,
@@ -210,7 +208,10 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 						pista == previousLocal.Pista {
 
 						fmt.Println("local Repetido")
-						caption = IsLocationValid(caption, &local)
+						caption, err = IsLocationValid(caption, &local)
+						if err != nil {
+							return err
+						}
 
 						err := populateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &previousLocal, listaGeo)
 						//***
@@ -224,14 +225,17 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 						local.TroID = tro.ID
 						fmt.Println("salvando local .........................")
 						db.Create(&local)
-						caption = IsLocationValid(caption, &local)
-						err := populateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &local, listaGeo)
+						caption, err = IsLocationValid(caption, &local)
+						if err != nil {
+							return err
+						}
+						err = populateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &local, listaGeo)
 						//***
 						// err := saveFotosOnLocal(local.NumIdentificacao, caption, &local, listaGeo)
 						if err != nil {
 							fmt.Println("erro no saveFotos")
-
 							return err
+
 						}
 
 						previousLocal = local

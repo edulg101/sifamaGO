@@ -30,22 +30,36 @@ const (
 )
 
 var (
-	art            string = ""
-	tipoOcorrencia string = ""  // cod 774 - buracos
-	tipoTempoHora  string = "1" // corresponde a horas
-	prazo          string = ""
-	observacao     string = ""
-	data           string = ""
-	hora           string = ""
-	uf             string = "MT"
-	rodovia        string = ""
-	pista          string = ""
-	sentido        string = ""
-	kmInicial      string = ""
-	kmFinal        string = ""
+	art                 string
+	tipoOcorrencia      string // cod 774 - buracos
+	tipoTempoHora       string // 1 corresponde a horas
+	prazo               string
+	observacao          string
+	data                string
+	hora                string
+	uf                  string
+	rodovia             string
+	pista               string
+	sentido             string
+	kmInicial           string
+	kmFinal             string
+	concessionariaValue string
+	err                 error
 )
 
-func InicioDigitacao() {
+func getConcessionariaValue() (string, error) {
+	if util.CONCESSIONARIA == "MSVIA" {
+		return "19642306000170", nil
+	} else if util.CONCESSIONARIA == "CRO" {
+		return "19521322000104", nil
+
+	} else if util.CONCESSIONARIA == "ECO050" {
+		return "19208022000170", nil
+	}
+	return "", fmt.Errorf("não foi possível determinar a concessionária.")
+}
+
+func InicioDigitacao() error {
 
 	go KeepMouseMoving()
 
@@ -60,7 +74,7 @@ func InicioDigitacao() {
 	}
 	driver, err := selenium.NewRemote(caps, "http://127.0.0.1:9515/wd/hub")
 	if err != nil {
-		panic(err)
+		return fmt.Errorf(fmt.Sprint(err))
 	}
 
 	// defer driver.Quit()
@@ -71,12 +85,17 @@ func InicioDigitacao() {
 	fmt.Println("abrindo pagina do Sifama")
 
 	usuario, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_TextBoxUsuario")
-	senha, e := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_TextBoxSenha")
-	entrar, er := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ButtonOk")
-
-	errorHandle(err)
-	errorHandle(e)
-	errorHandle(er)
+	if err != nil {
+		return fmt.Errorf(fmt.Sprint(err))
+	}
+	senha, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_TextBoxSenha")
+	if err != nil {
+		return fmt.Errorf(fmt.Sprint(err))
+	}
+	entrar, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ButtonOk")
+	if err != nil {
+		return fmt.Errorf(fmt.Sprint(err))
+	}
 
 	usuario.SendKeys(util.USER)
 	senha.SendKeys(util.PWD)
@@ -87,26 +106,29 @@ func InicioDigitacao() {
 
 	waitForJsAndJquery(driver)
 
-	inicioTro(driver)
+	err = inicioTro(driver)
+	if err != nil {
+		return err
+	}
 
 	// Alert After job is done.
 	driver.ExecuteScript("alert('Terminou')", nil)
 
+	return nil
+
 }
 
-func inicioTro(driver selenium.WebDriver) {
+func inicioTro(driver selenium.WebDriver) error {
 
-	// var troList []Tro
 	var t Tro
 
 	troList := t.FindAll()
-	// db.Preload("Locais.Fotos").Preload(clause.Associations).Find(&troList)
 
 	totalTro := len(troList)
 
 	primeiro := true
 	for i, tro := range troList {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second / 2)
 
 		if !primeiro {
 			waitForJsAndJquery(driver)
@@ -117,18 +139,29 @@ func inicioTro(driver selenium.WebDriver) {
 
 		waitForProcessBar(driver, idProcessando)
 
-		registroTro(tro, driver, actualTro, totalTro)
+		err = registroTro(tro, driver, actualTro, totalTro)
+		if err != nil {
+			return err
+		}
 
 	}
+	return nil
 }
 
-func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) {
+func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) error {
 
 	waitForJsAndJquery(driver)
 
-	fmt.Println("Selecionando CRO na lista")
+	fmt.Println("Selecionando Concessionária na lista")
 
-	jqueryScriptWithChange(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlConcessionaria", "19521322000104")
+	concessionariaValue, err = getConcessionariaValue()
+	if err != nil {
+		return fmt.Errorf("não foi possível identificar a concessionária")
+	}
+
+	// time.Sleep(time.Minute / 3)
+
+	jqueryScriptWithChange(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlConcessionaria", concessionariaValue)
 
 	waitForProcessBar(driver, idProcessando)
 
@@ -154,14 +187,12 @@ func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) {
 	observacao = strings.Title(observacao)
 
 	// verificar se data e hora não é para cada local
-
 	data = tro.Locais[0].Data
 	hora = tro.Locais[0].Hora
 
 	fmt.Println("Seleciona Artigo da Resolução")
 
 	//Pega da planilha
-
 	jqueryScriptWithChange(driver, idArtigo, art)
 
 	waitForProcessBar(driver, idProcessando)
@@ -180,7 +211,7 @@ func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) {
 
 	fmt.Println("Seleciona Entre horas / dias")
 
-	jqueryScriptWithChange(driver, idTipoPrazo, tipoTempoHora)
+	jqueryScriptWithChange(driver, idTipoPrazo, tro.TipoPrazo)
 
 	waitForProcessBar(driver, idProcessando)
 	waitForJsAndJquery(driver)
@@ -235,21 +266,18 @@ func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) {
 
 	waitForJsAndJquery(driver)
 
-	// consulta.checkForErrors();
-
-	// consulta.waitForProcessBar();
-
-	fmt.Println("Insere UF")
-
-	jqueryScript(driver, idUf, uf)
-
 	for _, local := range locais {
 
 		rodovia = local.Rodovia
+		uf = local.Estado
 		pista = local.Pista
 		sentido = local.Sentido
 		kmInicial = local.KmInicial
 		kmFinal = local.KmFinal
+
+		fmt.Println("Insere UF")
+
+		jqueryScript(driver, idUf, uf)
 
 		fmt.Println("insere rodovia")
 
@@ -372,6 +400,8 @@ func registroTro(tro Tro, driver selenium.WebDriver, actualTro, totalTro int) {
 	waitForJsAndJquery(driver)
 
 	fmt.Println("OK ")
+
+	return nil
 
 }
 

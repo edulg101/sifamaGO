@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sifamaGO/src/db"
+	"sifamaGO/src/util"
 	"strconv"
 	"strings"
 	"time"
@@ -25,11 +26,10 @@ func ProperTitle(input string) string {
 	return strings.Join(words, " ")
 }
 
+//CheckForNameSize - check if FileName is too large
 func CheckForNameSize(fullPath string) string {
 
-	//check if FileName is too large
-	fileName := filepath.Base(fullPath)
-	path := filepath.Dir(fullPath)
+	folder, fileName := filepath.Split(fullPath)
 
 	nameLength := len(fileName)
 	if nameLength > 90 {
@@ -42,8 +42,8 @@ func CheckForNameSize(fullPath string) string {
 
 		// newDecoder não necessário para Windows
 		// fileName, err := charmap.CodePage850.NewDecoder().String(fileName)
-		oldPath := filepath.Join(path, oldNameFile)
-		newPath := filepath.Join(path, newFileName)
+		oldPath := filepath.Join(folder, oldNameFile)
+		newPath := filepath.Join(folder, newFileName)
 		fileName = newFileName
 		fmt.Println("mudando o nome do arquivo")
 		fmt.Println("nome antigo: ", oldPath)
@@ -69,13 +69,17 @@ func IsTrechosDNIT(km float64) bool {
 	return (km >= 211.29 && km <= 230.06) || (km >= 277 && km <= 360)
 }
 
-func IsLocationValid(caption string, local *Local) string {
+func IsLocationValid(caption string, local *Local) (string, error) {
 
 	kmInicial := local.KmInicialDouble
 	kmFinal := local.KmFinalDouble
 	palavraChave := local.Tro.PalavraChave
 	oldKmInicial := local.KmInicial
 	oldKmFinal := local.KmFinal
+	var checkkmInicial bool
+	var checkkmFinal bool
+	var dnit bool
+	var dnit1 bool
 
 	if strings.Contains(local.Rodovia, "364") && strings.Contains(strings.ToLower(local.Sentido), "decrescente") {
 		if (kmInicial > 0 && kmInicial < 20) || (kmFinal > 0 && kmFinal < 20) {
@@ -95,15 +99,23 @@ func IsLocationValid(caption string, local *Local) string {
 	kmInicial = local.KmInicialDouble
 	kmFinal = local.KmFinalDouble
 
-	checkkmInicial, dnit := CheckKm(local.Rodovia, kmInicial, palavraChave)
-	checkkmFinal, dnit1 := CheckKm(local.Rodovia, kmFinal, palavraChave)
+	//***
+
+	checkkmInicial, dnit, err = CheckKm(local.Estado, local.Rodovia, kmInicial, palavraChave)
+	if err != nil {
+		return "", err
+	}
+	checkkmFinal, dnit1, err = CheckKm(local.Estado, local.Rodovia, kmFinal, palavraChave)
+	if err != nil {
+		return "", err
+	}
 
 	local.Valid = checkkmInicial && checkkmFinal
 	local.TrechoDNIT = dnit || dnit1
 
 	db.GetDB().Save(&local)
 
-	return caption
+	return caption, nil
 }
 
 func InterpolationLocal(local *Local) (float64, float64) {
@@ -130,7 +142,46 @@ func InterpolationKm(km float64) float64 {
 
 }
 
-func CheckKm(rodovia string, km float64, palavraChave string) (bool, bool) {
+func CheckKm(estado, rodovia string, km float64, palavraChave string) (bool, bool, error) {
+	if util.CONCESSIONARIA == "CRO" {
+		return CheckKmCRO(rodovia, km, palavraChave)
+	} else if util.CONCESSIONARIA == "MSVIA" {
+		return CheckKMSVIA(rodovia, km, palavraChave)
+	} else if util.CONCESSIONARIA == "ECO050" {
+		return CheckKmECO050(estado, rodovia, km, palavraChave)
+	}
+	return false, false, fmt.Errorf("nao foi possivel verificar o Check-km .. ")
+}
+func CheckKMSVIA(rodovia string, km float64, palavraChave string) (bool, bool, error) {
+	if km >= 0 && km <= 847.2 {
+		return true, false, nil
+	}
+	return false, false, nil
+}
+
+func CheckKmECO050(estado, rodovia string, km float64, palavraChave string) (bool, bool, error) {
+	switch rodovia {
+	case "50":
+		if estado == "MG" {
+			if (km >= 0 && km <= 65.7) || (km >= 77.3 && km <= 207.3) {
+				return true, false, nil
+			}
+		} else if estado == "GO" {
+			if km >= 95.7 && km <= 314.2 {
+				return true, false, nil
+			}
+		}
+
+	case "Contorno de Uberlândia":
+		return (km >= 0 && km <= 22.4), false, nil
+
+	default:
+		return false, false, nil
+	}
+	return false, false, nil
+}
+
+func CheckKmCRO(rodovia string, km float64, palavraChave string) (bool, bool, error) {
 
 	disposicao := GetDisposicaoLegal(palavraChave)
 	edificacoes := false
@@ -142,31 +193,31 @@ func CheckKm(rodovia string, km float64, palavraChave string) (bool, bool) {
 	switch rodovia {
 	case "70":
 		if km < 495.9 || km > 524 {
-			return false, false
+			return false, false, nil
 		}
-		return true, false
+		return true, false, nil
 
 	case "163":
-		return (km < 120 || (km <= 855 && km >= 507.1)), false
+		return (km < 120 || (km <= 855 && km >= 507.1)), false, nil
 
 	case "364":
 		if km < 201 || km > 588.2 {
-			return false, false
+			return false, false, nil
 		} else if km <= 211.3 {
-			return true, false
+			return true, false, nil
 		} else if km >= 434.6 {
-			return true, false
+			return true, false, nil
 		} else if !edificacoes && IsTrechosDNIT(km) {
 
-			return true, true
+			return true, true, nil
 		} else if edificacoes && (km >= 201 && km <= 588.2) {
-			return true, false
+			return true, false, nil
 		}
 
 	default:
-		return false, false
+		return false, false, nil
 	}
-	return false, false
+	return false, false, nil
 }
 
 func GetDisposicaoLegal(palavraChave string) []string {
@@ -300,6 +351,99 @@ func GetDescricaoDisposicaoLegal(codstr string) string {
 	descricao[863] = "Art 9º, VII - deixar de manter ou manter sinalização vertical de regulamentação em desconformidade com as normas técnicas vigentes, por prazo superior ao previsto no Contrato de Concessão ou no PER"
 
 	return descricao[cod]
+}
+
+func getEstadoERodovia(word string, i int) (string, string, error) {
+
+	if strings.Contains(word, "mt") && (strings.Contains(word, "364") || strings.Contains(word, "70") || strings.Contains(word, "163")) {
+		util.CONCESSIONARIA = "CRO"
+		return getEstadoERodoviaCRO(word, i)
+	} else if strings.Contains(word, "ms") && strings.Contains(word, "163") {
+		util.CONCESSIONARIA = "MSVIA"
+		return getEstadoERodoviaMsVia(word, i)
+	} else if strings.Contains(word, "torno") || strings.Contains(word, "50") && (strings.Contains(word, "go") || strings.Contains(word, "mg")) {
+		util.CONCESSIONARIA = "ECO050"
+		return getEstadoERodoviaEco050(word, i)
+	} else {
+		return "", "", fmt.Errorf("nao foi possivel identificar a concessionária a partir do primeiro local")
+	}
+
+}
+
+func CheckKmEco050(estado, rodovia string, km float64, palavraChave string) (bool, bool) {
+
+	switch rodovia {
+	case "50":
+		if estado == "MG" {
+			if (km >= 0 && km <= 65.7) || (km >= 77.3 && km <= 207.3) {
+				return true, false
+			}
+		} else if estado == "GO" {
+			if km >= 95.7 && km <= 314.2 {
+				return true, false
+			}
+		}
+
+	case "Contorno de Uberlândia":
+		return (km >= 0 && km <= 22.4), false
+
+	default:
+		return false, false
+	}
+	return false, false
+}
+
+func getEstadoERodoviaCRO(word string, i int) (string, string, error) {
+	var rodovia string
+	estado := "MT"
+	if strings.Contains(word, "070") {
+		rodovia = "70"
+		return rodovia, estado, nil
+	} else if strings.Contains(word, "163") {
+		rodovia = "163"
+		return rodovia, estado, nil
+	} else if strings.Contains(word, "364") {
+		rodovia = "364"
+		return rodovia, estado, nil
+	} else {
+		err := fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
+		return rodovia, estado, err
+	}
+
+}
+
+func getEstadoERodoviaEco050(word string, i int) (string, string, error) {
+	var estado string
+	var rodovia string
+
+	if strings.Contains(word, "050/mg") && !strings.Contains(word, "torno") {
+		rodovia = "50"
+		estado = "MG"
+		return rodovia, estado, nil
+
+	} else if strings.Contains(word, "050/go") {
+		rodovia = "50"
+		estado = "GO"
+		return rodovia, estado, nil
+	} else if strings.Contains(word, "contorno") {
+		rodovia = "Contorno de Uberlândia"
+		estado = "MG"
+		return rodovia, estado, nil
+	} else {
+		err := fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
+		return rodovia, estado, err
+	}
+}
+func getEstadoERodoviaMsVia(word string, i int) (string, string, error) {
+	var estado string
+	var rodovia string
+	if strings.Contains(word, "163") {
+		rodovia = "163"
+		estado = "MS"
+		return rodovia, estado, nil
+	}
+	err := fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
+	return rodovia, estado, err
 }
 
 //art 4

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sifamaGO/src/config"
 	"sifamaGO/src/db"
 	"sifamaGO/src/util"
 	"sifamaGO/src/util/geo"
@@ -18,6 +19,11 @@ import (
 type Request struct {
 	StartDigitacao bool
 	Restart        bool
+	Compact        bool
+	Folder         string
+	Title          string
+	User           string
+	Passd          string
 }
 
 func Report(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +43,15 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("start digitacao", request.StartDigitacao)
 		fmt.Println("Restart", request.Restart)
 		if request.StartDigitacao {
-			InicioDigitacao()
+			util.USER = request.User
+			util.PWD = request.Passd
+			err := InicioDigitacao()
+			if err != nil {
+
+				w.WriteHeader(http.StatusNotAcceptable)
+				w.Write([]byte(fmt.Sprint(err)))
+				return
+			}
 		}
 		if request.Restart {
 			err := restart()
@@ -57,6 +71,10 @@ func Report(w http.ResponseWriter, r *http.Request) {
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
+		err1 := config.GetEnv()
+		if err1 != nil {
+			panic(err1)
+		}
 		db.CleanUpDB(db.GetDB())
 		f, _ := os.Open(util.ROOTPATH)
 		files, _ := f.ReadDir(-1)
@@ -72,18 +90,27 @@ func Home(w http.ResponseWriter, r *http.Request) {
 			Folders: filesArray,
 		}
 
-		tmpl := template.Must(template.ParseFiles("src/template/index.html"))
+		tmpl := template.Must(template.ParseFiles("view/index.html"))
 
 		tmpl.Execute(w, data)
 	}
 	if r.Method == "POST" {
 		fmt.Println("metodo post entrou")
 
-		folder := r.FormValue("folderselect")
+		var request Request
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&request)
+		errorHandle(err)
+
+		fmt.Println("start digitacao", request.StartDigitacao)
+		fmt.Println("Restart", request.Restart)
+
+		folder := request.Folder
 
 		util.ORIGINIMAGEPATH = filepath.Join(util.ROOTPATH, folder)
 
-		title := r.FormValue("titulo")
+		title := request.Title
+
 		if title != "" {
 			util.TITLE = title
 		} else {
@@ -93,9 +120,7 @@ func Home(w http.ResponseWriter, r *http.Request) {
 
 		start := time.Now()
 
-		//***
-		// populateFotosOnDB(util.ORIGINIMAGEPATH)
-		err := ImportSpreadSheet(util.SPREADSHEETPATH)
+		err = ImportSpreadSheet(util.SPREADSHEETPATH)
 
 		fmt.Printf("tempo: %v\n", time.Since(start))
 
@@ -139,13 +164,44 @@ func reportGet(w http.ResponseWriter) {
 		LocalWithNoFotos: localWithNoFotos,
 	}
 
-	tmpl := template.Must(template.ParseFiles("src/template/report.html"))
+	tmpl := template.Must(template.ParseFiles("view/report.html"))
 
 	tmpl.Execute(w, data)
 }
 
+func Compact(w http.ResponseWriter, r *http.Request) {
+
+	if err := r.ParseForm(); err != nil {
+		fmt.Fprintf(w, "ParseForm() err: %v", err)
+		return
+	}
+	var request Request
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&request)
+	errorHandle(err)
+
+	if request.Compact {
+		util.ORIGINIMAGEPATH = filepath.Join(util.ROOTPATH, request.Folder)
+		fmt.Println(util.ORIGINIMAGEPATH)
+		err := ResizeAllImagesInFolder(util.ORIGINIMAGEPATH, util.MAXIMAGEWIDTH)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			message := fmt.Sprint(err)
+			fmt.Println(message)
+			w.Write([]byte(message))
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+
+	} else {
+		w.Write([]byte("ocorreu um erro"))
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+}
+
 func FaviconHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "src/template/images/favicon.ico")
+	http.ServeFile(w, r, "view/images/favicon.ico")
 }
 func Map(w http.ResponseWriter, r *http.Request) {
 
@@ -165,7 +221,7 @@ func Map(w http.ResponseWriter, r *http.Request) {
 		Points: pontos,
 	}
 
-	tmpl := template.Must(template.ParseFiles("src/template/map.html"))
+	tmpl := template.Must(template.ParseFiles("view/map.html"))
 
 	tmpl.Execute(w, data)
 }
@@ -205,55 +261,3 @@ func (tro Tro) findAllFotos() []Tro {
 	db.GetDB().Preload("Locais.Fotos").Preload(clause.Associations).Find(&troList)
 	return troList
 }
-
-// func Home1(w http.ResponseWriter, r *http.Request) {
-// 	if r.Method == "GET" {
-// 		db.CleanUpDB(db.GetDB())
-// 		f, _ := os.Open(util.ROOTPATH)
-// 		files, _ := f.ReadDir(-1)
-
-// 		var filesArray []Folder
-// 		for _, file := range files {
-// 			if file.IsDir() {
-// 				filesArray = append(filesArray, Folder{FolderName: file.Name()})
-// 			}
-// 		}
-
-// 		data := HomeModel{
-// 			Folders: filesArray,
-// 		}
-
-// 		var assetData embed.FS
-
-// 		tmpl, err := template.ParseFS(assetData, "template/index.html")
-// 		fmt.Println(err)
-
-// 		tmpl.Execute(w, data)
-// 	}
-// 	if r.Method == "POST" {
-// 		fmt.Println("metodo post entrou")
-
-// 		folder := r.FormValue("folderselect")
-
-// 		util.ORIGINIMAGEPATH = filepath.Join(util.ROOTPATH, folder)
-
-// 		title := r.FormValue("titulo")
-// 		if title != "" {
-// 			util.TITLE = title
-// 		} else {
-// 			today := time.Now().Format("02/01/2006")
-// 			util.TITLE = "Tros Emitidos em " + today
-// 		}
-
-// 		populateFotosOnDB(util.ORIGINIMAGEPATH)
-// 		err := ImportSpreadSheet(util.SPREADSHEETPATH)
-// 		if err != nil {
-// 			w.WriteHeader(http.StatusNotAcceptable)
-// 			w.Write([]byte(fmt.Sprintln(err)))
-// 		}
-
-// 		http.Redirect(w, r, "/report", http.StatusSeeOther)
-
-// 	}
-
-// }

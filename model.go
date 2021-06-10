@@ -29,6 +29,7 @@ type Local struct {
 	NumIdentificacao string
 	Data             string
 	Hora             string
+	Estado           string
 	Rodovia          string
 	Pista            string
 	KmInicial        string

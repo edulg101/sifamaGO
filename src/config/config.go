@@ -20,12 +20,13 @@ func GetEnv() error {
 	if err = godotenv.Load(); err != nil {
 		log.Fatal(err)
 	}
-
 	util.PORT = os.Getenv("PORT")
-
-	util.PWD = os.Getenv("PWD")
-
-	util.USER = os.Getenv("USER")
+	util.PWD = os.Getenv("PASSW")
+	util.USER = os.Getenv("USS")
+	util.SELENIUMPATH = os.Getenv("SELENIUMPATH")
+	util.SPREADSHEETPATH = os.Getenv("SPREADSHEETPATH")
+	util.FONTPATH = os.Getenv("FONTPATH")
+	util.OUTPUTIMAGEFOLDER = os.Getenv("OUTPUTIMAGEFOLDER")
 
 	MaxImageWidth, err := strconv.ParseUint(os.Getenv("MAX-IMAGE-WIDTH"), 10, 32)
 	if err != nil {

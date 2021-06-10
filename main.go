@@ -21,13 +21,6 @@ func main() {
 	if err1 != nil {
 		panic(err1)
 	}
-	fmt.Println(util.ROOTPATH)
-	fmt.Println(util.PWD)
-	fmt.Println(util.ROOTPATH)
-
-	// path := "D:\\OneDrive - ANTT- Agencia Nacional de Transportes Terrestres\\CRO\\RTA\\2021_05_28 ACOMPANHAMENTO\\Anexos"
-
-	// err5 := resizeAllImagesInFolder(path, 600)
 
 	ui, er := lorca.New("", "", 1000, 800)
 	if er != nil {
@@ -47,6 +40,8 @@ func main() {
 
 	r.HandleFunc("/report", Report)
 
+	r.HandleFunc("/compact", Compact).Methods("POST")
+
 	r.HandleFunc("/favicon.ico", FaviconHandler)
 
 	r.HandleFunc("/map", Map).GetMethods()
@@ -56,9 +51,9 @@ func main() {
 	r.PathPrefix(staticURL).Handler(http.StripPrefix(staticURL, http.FileServer(http.Dir(staticDir))))
 
 	// Logo Router and static images
-	imgesStaticDir := filepath.Join("src", "template", "images")
-	cssStaticPath := filepath.Join("src", "template", "css")
-	scriptStaticPath := filepath.Join("src", "template", "script")
+	imgesStaticDir := filepath.Join("view", "images")
+	cssStaticPath := filepath.Join("view", "css")
+	scriptStaticPath := filepath.Join("view", "script")
 
 	// a principio somente para o logo
 	imagesStaticURL := "/images/"

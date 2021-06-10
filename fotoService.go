@@ -40,7 +40,7 @@ func populateFotosOnDB2(path, localId, caption string, local *Local, listaGeo []
 
 		}
 
-		_, name := filepath.Split(currentPath)
+		dir, name := filepath.Split(currentPath)
 
 		re := regexp.MustCompile(localId + `[^0-9]`)
 		m := re.MatchString(name)
@@ -83,13 +83,13 @@ func populateFotosOnDB2(path, localId, caption string, local *Local, listaGeo []
 			url = filepath.ToSlash(url)
 			urlp := template.URL(url)
 
-			name = CheckForNameSize(name)
+			name = CheckForNameSize(currentPath)
 
 			l := *local
 
 			foto := Foto{
 				Nome:       name,
-				Path:       template.URL(currentPath),
+				Path:       template.URL(filepath.Join(dir, name)),
 				Legenda:    caption,
 				LocalID:    local.ID,
 				Local:      l,
@@ -103,8 +103,8 @@ func populateFotosOnDB2(path, localId, caption string, local *Local, listaGeo []
 			}
 
 			db.GetDB().Create(&foto)
-			local.Fotos = append(local.Fotos, foto)
-			db.GetDB().Save(&local)
+			// local.Fotos = append(local.Fotos, foto)
+			// db.GetDB().Save(&local)
 			err = foto.merge()
 			if err != nil {
 				fmt.Println("erro no foto merge")
@@ -416,8 +416,6 @@ type closestsLocations struct {
 
 func resizeImage(img image.Image, path string, size uint) error {
 
-	// resize to width 1000 using Lanczos resampling
-	// and preserve aspect ratio
 	m := resize.Resize(size, 0, img, resize.Bicubic)
 
 	err := os.Remove(path)
@@ -438,9 +436,6 @@ func resizeImage(img image.Image, path string, size uint) error {
 	if err != nil {
 		return err
 	}
-	// _, err = io.Copy(outFile, rc)
-
-	// Close the file without defer to close before next iteration of loop
 
 	return nil
 }
@@ -509,6 +504,7 @@ func resizeImageAndCopyMetadata(imagePath string, size uint) error {
 	file.Close()
 
 	dir := filepath.Dir(imagePath)
+	fmt.Println(dir)
 
 	oldFilePath := filepath.Join(dir, "temp.jpg")
 
@@ -566,7 +562,7 @@ func ResizeAllImagesInFolder(path string, width uint) error {
 				return fmt.Errorf("não foi possível abrir imagem: %s", currentPath)
 			}
 			conf, _, err := image.DecodeConfig(imgFile)
-			defer imgFile.Close()
+			imgFile.Close()
 			if err != nil {
 				return fmt.Errorf("não consegui abrir o arquivo: %s", currentPath)
 			}
