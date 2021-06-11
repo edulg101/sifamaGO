@@ -47,20 +47,37 @@
                     </span>
                 </form>
             </div>
-            <div id="notification" class="alert alert-danger erro" role="alert">
-            </div>
-
-
 
         </div>
 
-        <div class="disposicao">
+        <label for="sifamaCheckForm">Importar dados para verificação dos TROs</label>
+        <div>
+            <form id="sifamaCheckForm">
+                <input type="text" id="user" class="form-control" placeholder="Usuário">
+                <input type="password" id="password" class="form-control" placeholder="senha" style="margin-top: 7px"
+                    ;">
+
+
+                <button type="button" id="geraRelatorio" class="btn btn-primary" type="submit" value="Gerar Relatório"
+                    onclick="checkSifama()">Finalizar TROs no Sifama</button>
+                <span>
+                    <div id="spinnerCheck" class="spinner-border" role="status" style="display:none">
+                        <span class="sr-only"></span>
+                    </div>
+                </span>
+            </form>
+            <div id="notification" class="alert alert-danger erro" role="alert"></div>
+
+        </div>
+
+
+        <!-- <div class="disposicao">
             Abra a planilha Online<a
                 href="https://anttgov-my.sharepoint.com/:x:/g/personal/eduardo_gerhardt_antt_gov_br/EaTYDn6s5upAg2FFBbMUGDkBF-o7Xw2ghfbhGILWyZmrVw?e=kReT4L"
                 target="_blank">
                 Aqui.
             </a>
-        </div>
+        </div> -->
     </div>
     <script src="script/script.js"></script>
 

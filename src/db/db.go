@@ -33,10 +33,7 @@ func ConectDB() {
 }
 
 func CleanUpDB(db *gorm.DB) {
-	rows := db.Exec("DELETE FROM 'fotos' WHERE id > 0")
-	fmt.Println("fotos deletadas: ", rows.RowsAffected)
-	rows = db.Exec("DELETE FROM 'locals' WHERE id > 0")
-	fmt.Println("locals deletadas: ", rows.RowsAffected)
-	rows = db.Exec("DELETE FROM 'tros' WHERE id > 0")
-	fmt.Println("tros deletadas: ", rows.RowsAffected)
+	db.Exec("DELETE FROM 'fotos' WHERE id > 0")
+	db.Exec("DELETE FROM 'locals' WHERE id > 0")
+	db.Exec("DELETE FROM 'tros' WHERE id > 0")
 }

@@ -5,7 +5,6 @@ async function startDigitacao() {
     pwd = document.getElementById('password').value
 
 
-
     const requestData = {
         StartDigitacao: true,
         Restart: false,
@@ -49,6 +48,77 @@ async function startDigitacao() {
         div.appendChild(timer)
     }
 
+}
+
+
+async function checkSifama() {
+
+    user = document.getElementById('user').value
+    pwd = document.getElementById('password').value
+    notificationDiv = document.getElementById('notification')
+    notificationDiv.style.display = 'none';
+    spinner = document.getElementById('spinnerCheck')
+
+
+    const requestData = {
+        StartDigitacao: true,
+        User: user,
+        Passd: pwd
+
+    };
+
+    console.log('checkSifama()')
+
+    if (user == "" || pwd == "") {
+
+        let timer = document.createElement('div')
+        timer.innerHTML = "Os campos devem ser preenchidos antes de enviar. Tente novamente... "
+        div = document.getElementById('notification')
+        while (div.firstChild) {
+            div.removeChild(div.firstChild);
+        }
+
+        div.style.display = 'inline-block';
+
+        div.appendChild(timer)
+        setTimeout(() => {
+            div.style.display = 'none';
+        }, 2000);
+
+    } else {
+
+        document.getElementById('user').value = '';
+        document.getElementById('password').value = '';
+
+        // spinner = document.getElementById('spinnerCheck')
+        spinner.style.display = 'inline-block'
+
+        const response = await fetch('/checkSifama', {
+            method: 'POST',
+            body: JSON.stringify(requestData)
+        });
+
+        let responseText = await response.text();
+        let status = response.status;
+
+        if (status != 200) {
+            spinner.style.display = 'none'
+            let newDiv = document.createElement('div')
+            responseText = responseText.replace(/\n/g, '</br>')
+            newDiv.innerHTML = responseText
+            notificationDiv = document.getElementById('notification')
+            while (notificationDiv.firstChild) {
+                notificationDiv.removeChild(notificationDiv.firstChild);
+            }
+            notificationDiv.style.display = 'inline-block';
+            notificationDiv.appendChild(newDiv)
+        } else {
+            spinner.style.display = 'none'
+            console.log("finish")
+
+        }
+        spinner.style.display = 'none'
+    }
 }
 
 async function toReport() {

@@ -21,12 +21,12 @@ func GetEnv() error {
 		log.Fatal(err)
 	}
 	util.PORT = os.Getenv("PORT")
-	util.PWD = os.Getenv("PASSW")
-	util.USER = os.Getenv("USS")
 	util.SELENIUMPATH = os.Getenv("SELENIUMPATH")
 	util.SPREADSHEETPATH = os.Getenv("SPREADSHEETPATH")
 	util.FONTPATH = os.Getenv("FONTPATH")
 	util.OUTPUTIMAGEFOLDER = os.Getenv("OUTPUTIMAGEFOLDER")
+	util.EXIFTOOL = os.Getenv("EXIFTOOL")
+	util.CHECKSPREADSHEETPATH = os.Getenv("CHECKSPREADSHEETPATH")
 
 	MaxImageWidth, err := strconv.ParseUint(os.Getenv("MAX-IMAGE-WIDTH"), 10, 32)
 	if err != nil {
