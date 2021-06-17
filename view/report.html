@@ -73,17 +73,15 @@
                     <img src="{{.UrlPath}}" class="img-thumbnail img-fluid img-min">
                     <div style="width: 100%; padding: 20px;"
                         class=" {{if not .GeoMatch}} bg-danger text-white link{{else}} geotag {{end}}">
-                        <div class=>
-                            {{if eq .GeoRodovia ""}}
-                            - Imagem sem Metadados -
-                            {{else}}
-                            Localização pelo GPS: BR-{{.GeoRodovia}}/MT km {{printf "%.3f" .GeoKm}}
-                            <a href="http://maps.google.com/maps?q=&layer=c&cbll={{.Latitude}},{{.Longitude}}"
-                                target="_blank">StreetView</a>
-                            <span> /</span>
-                            <a href="/map?lat={{.Latitude}}&long={{.Longitude}}" target="_blank"> Mapa</a>
-                            {{end}}
-                        </div>
+                        {{if eq .GeoRodovia ""}}
+                        - Imagem sem Metadados -
+                        {{else}}
+                        Localização pelo GPS: BR-{{.GeoRodovia}}/MT km {{printf "%.3f" .GeoKm}}
+                        <a href="http://maps.google.com/maps?q=&layer=c&cbll={{.Latitude}},{{.Longitude}}"
+                            target="_blank">StreetView</a>
+                        <span> /</span>
+                        <a href="/map?lat={{.Latitude}}&long={{.Longitude}}" target="_blank"> Mapa</a>
+                        {{end}}
                     </div>
                 </div>
                 {{end}}
@@ -122,19 +120,30 @@
                 </div>
             </span>
 
-        </div>
-        <div id="notification" class="alert alert-danger erro" role="alert">
-        </div>
 
-        <div>
-            <form id="sifamaForm" style="margin-bottom:  100px;">
+        </div>
+        <div id="notification" class="alert alert-danger erro" role="alert"></div>
+        <div id="sucess" class="alert alert-success sucesso" role="alert"></div>
+
+
+
+        <div style="margin-bottom:  100px;">
+            <form id="sifamaForm">
                 <input type="text" id="user" class="form-control" placeholder="Usuário">
                 <input type="password" id="password" class="form-control" placeholder="senha" style="margin-top: 7px"
                     ;">
                 <button type="button" id="geraRelatorio" class="btn btn-primary" type="submit" value="Gerar Relatório"
-                    onclick="startDigitacao()">Enviar para o Sifama</button>
+                    onclick="startDigitacao1()">Enviar para o Sifama</button>
+                <span>
+                    <div id="spinner1" class="spinner-border" role="status" style="visibility:hidden;">
+                        <span class="sr-only"></span>
+                    </div>
+                </span>
             </form>
+
+
         </div>
+
 
 
         <!-- <div>

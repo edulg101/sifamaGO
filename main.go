@@ -23,8 +23,6 @@ func main() {
 		panic(err1)
 	}
 
-	// selenium.CkeckSifama()
-
 	ui, er := lorca.New("", "", 1000, 800)
 	if er != nil {
 		log.Fatal(er)
@@ -33,6 +31,7 @@ func main() {
 
 	db.ConectDB()
 
+	db.GetDB().AutoMigrate(&model.Session{})
 	db.GetDB().AutoMigrate(&model.Tro{})
 	db.GetDB().AutoMigrate(&model.Local{})
 	db.GetDB().AutoMigrate(&model.Foto{})

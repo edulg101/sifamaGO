@@ -27,7 +27,7 @@ type GeoUtil struct {
 	index   int
 }
 
-func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, listaGeo []model.Geolocation) error {
+func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, listaGeo []model.Geolocation, linha int) error {
 
 	var lat float64
 	var long float64
@@ -108,7 +108,7 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 			db.GetDB().Create(&foto)
 			// local.Fotos = append(local.Fotos, foto)
 			// db.GetDB().Save(&local)
-			err = foto.Merge()
+			err = foto.Merge(linha)
 			if err != nil {
 				fmt.Println("erro no foto merge")
 				return err
@@ -120,7 +120,7 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 	return err
 }
 
-func PopulateFotosOnDB(path string) {
+func PopulateFotosOnDB(path string, sessionId string) {
 
 	var lat float64
 	var long float64
@@ -197,56 +197,56 @@ func PopulateFotosOnDB(path string) {
 	}
 }
 
-func saveFotosOnLocal(IdColuna, caption string, local *model.Local, listaGeo []model.Geolocation) error {
+// func saveFotosOnLocal(IdColuna, caption string, local *model.Local, listaGeo []model.Geolocation) error {
 
-	var fotos []model.Foto
+// 	var fotos []model.Foto
 
-	db.GetDB().Find(&fotos)
+// 	db.GetDB().Find(&fotos)
 
-	for _, foto := range fotos {
-		name := foto.Nome
+// 	for _, foto := range fotos {
+// 		name := foto.Nome
 
-		re := regexp.MustCompile(IdColuna + `[^0-9]`)
-		m := re.MatchString(name)
+// 		re := regexp.MustCompile(IdColuna + `[^0-9]`)
+// 		m := re.MatchString(name)
 
-		if m {
-			rodovia, km, valid := GetLocation(foto.Latitude, foto.Longitude, listaGeo)
-			if valid {
-				foto.GeoRodovia = rodovia
-				foto.GeoKm = km
+// 		if m {
+// 			rodovia, km, valid := GetLocation(foto.Latitude, foto.Longitude, listaGeo)
+// 			if valid {
+// 				foto.GeoRodovia = rodovia
+// 				foto.GeoKm = km
 
-				if math.Abs(local.KmInicialDouble-km) < 1 && (strings.Contains(rodovia, local.Rodovia)) {
-					foto.GeoMatch = true
+// 				if math.Abs(local.KmInicialDouble-km) < 1 && (strings.Contains(rodovia, local.Rodovia)) {
+// 					foto.GeoMatch = true
 
-				}
-			}
+// 				}
+// 			}
 
-			foto.LocalID = local.ID
-			if foto.Legenda == "" {
-				foto.Legenda = caption
-			}
-			db.GetDB().Save(&foto)
-			local.Fotos = append(local.Fotos, foto)
-			db.GetDB().Save(&local)
+// 			foto.LocalID = local.ID
+// 			if foto.Legenda == "" {
+// 				foto.Legenda = caption
+// 			}
+// 			db.GetDB().Save(&foto)
+// 			local.Fotos = append(local.Fotos, foto)
+// 			db.GetDB().Save(&local)
 
-			file, err := os.Open(string(foto.Path))
-			if err != nil {
-				fmt.Println("erro no open")
-				return err
-			}
+// 			file, err := os.Open(string(foto.Path))
+// 			if err != nil {
+// 				fmt.Println("erro no open")
+// 				return err
+// 			}
 
-			file.Close()
+// 			file.Close()
 
-			err = foto.Merge()
-			if err != nil {
-				fmt.Println("erro no foto merge")
-				return err
-			}
+// 			err = foto.Merge()
+// 			if err != nil {
+// 				fmt.Println("erro no foto merge")
+// 				return err
+// 			}
 
-		}
-	}
-	return nil
-}
+// 		}
+// 	}
+// 	return nil
+// }
 
 func resizeImage(img image.Image, path string, size uint) error {
 
@@ -380,6 +380,8 @@ func resizeImageAndCopyMetadata(imagePath string, size uint) error {
 	}
 
 	file.Close()
+	fmt.Println(oldFilePath)
+	fmt.Println(imagePath)
 
 	err = copyAllMetadata(oldFilePath, imagePath)
 	if err != nil {
@@ -393,11 +395,15 @@ func resizeImageAndCopyMetadata(imagePath string, size uint) error {
 }
 
 //ResizeAllImageInFolder will resize all image in a given Folder and Save with metadata.
-func ResizeAllImagesInFolder(path string, width uint) error {
+func ResizeAllImagesInFolder(path string, width uint) (string, error) {
+
+	totalImagesDone := 0
 
 	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
 		if err != nil {
-			panic(err)
+			if !strings.Contains(err.Error(), "temp.jpg") {
+				panic(err)
+			}
 
 		}
 		_, name := filepath.Split(currentPath)
@@ -416,13 +422,18 @@ func ResizeAllImagesInFolder(path string, width uint) error {
 				err = resizeImageAndCopyMetadata(currentPath, width)
 				if err != nil {
 					return fmt.Errorf("não foi possível reduzir o arquivo: %s", currentPath)
+				} else {
+					totalImagesDone++
 				}
+
 			}
 
 		}
 		return err
 	})
-	return err
+	returnMessage := fmt.Sprintf("Sucesso ! %d imagens Compactadas", totalImagesDone)
+	fmt.Println(returnMessage)
+	return returnMessage, err
 }
 
 func ResizeImageAndCopyMetadataFromOriginal(imagePath, originPath string, size uint) error {

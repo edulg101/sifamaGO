@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/tebeka/selenium"
@@ -133,43 +130,13 @@ func waitForElementByXpathFunc(driver selenium.WebDriver, id string) (selenium.W
 	}
 }
 
-func scriptToFillField(driver selenium.WebDriver, id, value string) {
+func scriptToFillField(driver selenium.WebDriver, id, value string) error {
 
 	var arguments []interface{}
 	arguments = append(arguments, id, value)
 	_, err := driver.ExecuteScript("document.getElementById(arguments[0]).setAttribute('value', arguments[1])", arguments)
-	errorHandling(err)
-}
-
-func checkForErrors(driver selenium.WebDriver) {
-	var divError selenium.WebElement
-	var err error
-	for i := 0; i < 10; i++ {
-		divError, err = driver.FindElement("id", "MessageBox_LabelTitulo")
-		errorHandling(err)
-		displayed, _ := divError.IsDisplayed()
-		if displayed {
-			message, _ := divError.Text()
-			message = strings.ToLower(message)
-			scanner := bufio.NewScanner(os.Stdin)
-			if !strings.Contains(message, "sucesso") {
-				var resp string
-				fmt.Println("Deu Erro. Ajuste e Digite em 'Sim' para continuar")
-				for scanner.Scan() {
-					resp = scanner.Text()
-				}
-				for strings.ToLower(resp) != "sim" {
-					fmt.Println("Deu Erro. Ajuste e Digite em 'Sim' para continuar")
-					for scanner.Scan() {
-						resp = scanner.Text()
-					}
-				}
-			}
-		}
-		time.Sleep(time.Second / 2)
+	if err != nil {
+		return err
 	}
-}
-
-func errorHandling(err error) {
-	fmt.Println(err)
+	return err
 }

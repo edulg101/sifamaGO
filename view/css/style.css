@@ -11,6 +11,10 @@ body {
     padding-top: 50px;
 }
 
+.spin {
+    display: none;
+}
+
 
 .tro {
     font-size: 0.7em;
@@ -66,6 +70,16 @@ body {
     display: none;
     font-size: 0.5em;
     margin-top: 10px;
+}
+
+.sucesso {
+    display: none;
+    font-size: 0.5em;
+    margin-top: 10px;
+}
+
+#buttonsDiv {
+    margin-bottom: 7px;
 }
 
 

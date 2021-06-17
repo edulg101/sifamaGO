@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func ImportSpreadSheet(path string) error {
+func ImportSpreadSheet(path string, session *model.Session) error {
 	f, err := excelize.OpenFile(path)
 	if err != nil {
 		fmt.Println(err)
@@ -26,11 +26,11 @@ func ImportSpreadSheet(path string) error {
 
 	// Get all the rows in the Sheet1.
 	rows := f.GetRows("Planilha1")
-	err = parseSpreadSheet(rows, db.GetDB())
+	err = parseSpreadSheet(session, rows, db.GetDB())
 	return err
 }
 
-func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
+func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) error {
 
 	var tro model.Tro
 	var local model.Local
@@ -52,6 +52,8 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 	var previousLocal model.Local
 	var listaGeo []model.Geolocation
 	geo.GetDBGEO().Find(&listaGeo)
+
+	sessionID := session.ID
 
 	for i, row := range rows {
 
@@ -98,6 +100,7 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 					return fmt.Errorf("erro. não consegui obter o tipo de prazo na linha %v.... abortando", i+1)
 
 				}
+				tro.SessionID = sessionID
 				db.Create(&tro)
 
 				startLocais = true
@@ -131,9 +134,13 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 						hora = word
 					}
 				} else if j == 4 {
-					rodovia, estado, err = getEstadoERodovia(word, i)
+					var concessionaria string
+					concessionaria, rodovia, estado, err = getEstadoERodovia(word, i)
 					if err != nil {
 						return err
+					}
+					if session.Concessionaria == "" {
+						session.Concessionaria = concessionaria
 					}
 
 				} else if j == 5 {
@@ -215,7 +222,7 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 							return err
 						}
 
-						err := service.PopulateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &previousLocal, listaGeo)
+						err := service.PopulateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &previousLocal, listaGeo, i)
 						//***
 						// err := saveFotosOnLocal(local.NumIdentificacao, caption, &previousLocal, listaGeo)
 						if err != nil {
@@ -231,7 +238,7 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 						if err != nil {
 							return err
 						}
-						err = service.PopulateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &local, listaGeo)
+						err = service.PopulateFotosOnDB2(util.ORIGINIMAGEPATH, local.NumIdentificacao, caption, &local, listaGeo, i)
 						//***
 						// err := saveFotosOnLocal(local.NumIdentificacao, caption, &local, listaGeo)
 						if err != nil {
@@ -263,9 +270,8 @@ type compareTroTime struct {
 }
 
 func checkForDuplicateTime() {
-	var t model.Tro
 
-	tros := t.FindAll()
+	tros := service.FindAllTro()
 
 	var data string
 	var hora string

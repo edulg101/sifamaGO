@@ -36,16 +36,20 @@
                 <form id="homeform" style="margin-bottom:  100px;">
                     <input id="hometitle" type="text" name="titulo" class="form-control"
                         placeholder="Se quiser Mudar o título do Relatório" style="margin-top: 8px;">
-                    <button id="gerarInput" type="button" class="btn btn-primary" onclick="toReport()">Gerar Relatório
+                    <button id="gerarInput" type="button" class="btn btn-primary" onclick="toReport1()">Gerar Relatório
                     </button>
                     <span><button id="reduzir" type="button" class="btn btn-secondary" onclick="compactImages()">Reduzir
                             Imagens</button></span>
                     <span>
-                        <div id="spinner" class="spinner-border" role="status" style="visibility:hidden;">
+                        <div id="spinner" class="spinner-border spin" role="status">
                             <span class="sr-only"></span>
                         </div>
                     </span>
                 </form>
+                <div id="notification" class="alert alert-danger erro" role="alert"></div>
+                <div id="success1" class="alert alert-success sucesso" role="alert"></div>
+
+
             </div>
 
         </div>
@@ -59,14 +63,15 @@
 
 
                 <button type="button" id="geraRelatorio" class="btn btn-primary" type="submit" value="Gerar Relatório"
-                    onclick="checkSifama()">Finalizar TROs no Sifama</button>
+                    onclick="checkSifama1()">Finalizar TROs no Sifama</button>
                 <span>
-                    <div id="spinnerCheck" class="spinner-border" role="status" style="display:none">
+                    <div id="spinnerCheck" class="spinner-border spin" role="status" style="display:none">
                         <span class="sr-only"></span>
                     </div>
                 </span>
             </form>
-            <div id="notification" class="alert alert-danger erro" role="alert"></div>
+            <div id="notification1" class="alert alert-danger erro" role="alert"></div>
+            <div id="success" class="alert alert-success sucesso" role="alert"></div>
 
         </div>
 

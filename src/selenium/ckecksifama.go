@@ -18,7 +18,7 @@ const (
 
 var seleniumPath string
 
-func CheckSifama(user, pass string) error {
+func CheckSifama(user, pass string) (string, error) {
 
 	err := config.GetEnv()
 	if err != nil {
@@ -39,7 +39,7 @@ func CheckSifama(user, pass string) error {
 	driver, err := selenium.NewRemote(caps, "http://127.0.0.1:9515/wd/hub")
 	if err != nil {
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -52,15 +52,15 @@ func CheckSifama(user, pass string) error {
 
 	usuario, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_TextBoxUsuario")
 	if err != nil {
-		return err
+		return "", err
 	}
 	senha, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_TextBoxSenha")
 	if err != nil {
-		return err
+		return "", err
 	}
 	entrar, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ButtonOk")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	usuario.SendKeys(user)
@@ -69,20 +69,36 @@ func CheckSifama(user, pass string) error {
 
 	waitForJsAndJquery(driver)
 
+	err = checkForErrors(driver)
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
 	tros := getInfoFromExcel()
+	if len(tros) <= 1 {
+		return "", fmt.Errorf("não foi possivel importar TROs da planilha - verifique a planilha.")
+
+	}
 
 	waitForJsAndJquery(driver)
 
-	i := 1
+	quit := make(chan string)
+	go KeepMouseMoving(quit)
 
+	i := 1
 	mainWindow, _ := driver.CurrentWindowHandle()
+	var returnMessage string
 
 	for ; i < len(tros); i++ {
 		tro := tros[i]
 		driver.SwitchWindow(mainWindow)
-		err = inicioVerificacao(driver, tro, tros, i)
+		if i == (len(tros) - 1) {
+			quit <- "quit"
+		}
+		returnMessage, err = inicioVerificacao(driver, tro, pass, tros, i)
 		if err != nil {
-			return err
+			return returnMessage, err
 		}
 
 	}
@@ -92,13 +108,11 @@ func CheckSifama(user, pass string) error {
 
 	driver.ExecuteScript("alert('Terminou')", nil)
 
-	time.Sleep(time.Second * 180)
-
-	return err
+	return returnMessage, err
 
 }
 
-func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string, count int) error {
+func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tros [][]string, count int) (string, error) {
 	mainWindow, _ := driver.CurrentWindowHandle()
 	troNumber := tro[0]
 	troHora := tro[1]
@@ -115,7 +129,9 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 	waitForJsAndJquery(driver)
 
 	we, err := waitForElementByXpath(driver, "/html/body/div[1]/div[1]/div[1]/div[1]")
-	errorHandling(err)
+	if err != nil {
+		return "", err
+	}
 	we.Click()
 	fmt.Println("abrindo a lista de TROs ........")
 
@@ -124,12 +140,19 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 	waitForJsAndJquery(driver)
 
 	listaTros, err := driver.FindElements(selenium.ByXPATH, "//div[@class='wingsDivNomeTarefa']")
-	errorHandling(err)
+	if err != nil {
+		return "", err
+	}
+
+	totalTros := len(tros)
+	sucessMessage := fmt.Sprintf("Foram Registratos %d TROs com Sucesso !", totalTros)
 
 	var listaTrosEmOrdem []int
 	for _, we := range listaTros {
-		text, e := we.Text()
-		errorHandling(e)
+		text, err := we.Text()
+		if err != nil {
+			return "", err
+		}
 		troStr := reg(text)
 		troInt, _ := strconv.Atoi(troStr)
 		listaTrosEmOrdem = append(listaTrosEmOrdem, troInt)
@@ -146,18 +169,23 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 	if count == 1 {
 		err := checkForMissingTros(tros, listaTrosEmOrdem)
 		if err != nil {
-			return err
+
+			return "", fmt.Errorf("%s\n%s", err.Error(), "Remova esses TROs da Planilha e Tente Novamente...")
 		}
 	}
 
 	for _, x := range listaTros {
 		text, _ := x.Text()
 		if strings.Contains(text, troNumber+"2021") {
-			getTBody, e := x.FindElement(selenium.ByXPATH, "../../..")
-			errorHandling(e)
+			getTBody, err := x.FindElement(selenium.ByXPATH, "../../..")
+			if err != nil {
+				return "", err
+			}
 			divToClick, _ := getTBody.FindElement(selenium.ByXPATH, "./tr[5]/td/div[2]")
 			err = divToClick.Click()
-			errorHandling(err)
+			if err != nil {
+				return "", err
+			}
 			bytes := []byte(text)
 			bytes = bytes[25:]
 			fmt.Println("Entrando no TRO n. " + string(bytes))
@@ -171,11 +199,15 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 	flag := true
 	for i := 0; i < 120 && flag; i++ {
 		handles, err := driver.WindowHandles()
-		errorHandling(err)
+		if err != nil {
+			return "", err
+		}
 		for _, wh := range handles {
 			if wh != mainWindow && flag {
 				err = driver.SwitchWindow(wh)
-				errorHandling(err)
+				if err != nil {
+					return "", err
+				}
 				we, err := driver.FindElement("id", "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_div1")
 				if we != nil && err == nil {
 					flag = false
@@ -196,7 +228,9 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 	waitForJsAndJquery(driver)
 
 	dataCampo, err := waitForElementByXpath(driver, `//input[@name="ctl00$ctl00$ctl00$ContentPlaceHolderCorpo$ContentPlaceHolderCorpo$ContentPlaceHolderCorpo$txtDataVerificacao"]`)
-	errorHandling(err)
+	if err != nil {
+		return "", err
+	}
 
 	time.Sleep(time.Second * 3)
 	fmt.Println("Insere data")
@@ -209,19 +243,25 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 	dataCampo.SendKeys(today)
 
 	passwordElement, err := driver.FindElement("id", PASSWORDCAMPO)
-	errorHandling(err)
+	if err != nil {
+		return "", err
+	}
 	passwordElement.Click()
 
 	waitForJsAndJquery(driver)
 
 	_, err = waitForElementById(driver, HORACAMPO, time.Second*30)
 
-	errorHandling(err)
+	if err != nil {
+		return "", err
+	}
 
 	fmt.Println("insere hora")
 
 	we, err = driver.FindElement("id", HORACAMPO)
-	errorHandling(err)
+	if err != nil {
+		return "", err
+	}
 	we.Clear()
 	we.SendKeys(troHora)
 
@@ -248,9 +288,11 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 
 	for i := 0; i < 3; i++ {
 		we, err = waitForElementById(driver, PASSWORDCAMPO, time.Second*30)
-		errorHandling(err)
+		if err != nil {
+			return "", err
+		}
 		we.Clear()
-		we.SendKeys(PASSWORD)
+		we.SendKeys(pass)
 		time.Sleep(7000)
 
 	}
@@ -264,7 +306,9 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 	waitForElementById(driver, OBSCAMPO, time.Second*30)
 
 	we, err = driver.FindElement("id", OBSCAMPO)
-	errorHandling(err)
+	if err != nil {
+		return "", err
+	}
 
 	we.SendKeys(troText)
 
@@ -278,7 +322,7 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 
 	time.Sleep(time.Second)
 
-	checkForErrors(driver)
+	checkForErrorsCkeckSifama(driver)
 
 	scriptToClick(driver, "MessageBox_ButtonOk")
 
@@ -286,6 +330,6 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, tros [][]string,
 
 	fmt.Printf("Salva Tro n. %v/2021 \n", troNumber)
 
-	return err
+	return sucessMessage, err
 
 }

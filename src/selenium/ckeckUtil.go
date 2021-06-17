@@ -2,15 +2,12 @@ package selenium
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"sifamaGO/src/util"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
-	"github.com/go-vgo/robotgo"
 )
 
 func reg(id string) string {
@@ -21,14 +18,6 @@ func reg(id string) string {
 
 	return subString[1]
 
-}
-
-func errorHandling(e error) {
-	if e != nil {
-		fmt.Println(e)
-		fmt.Scanf("%s")
-		os.Exit(1)
-	}
 }
 
 func checkForMissingTros(tros [][]string, listaTrosEmOrdem []int) error {
@@ -65,15 +54,6 @@ func checkForMissingTros(tros [][]string, listaTrosEmOrdem []int) error {
 		return fmt.Errorf(message)
 	}
 	return err
-}
-
-func keepMouseMoving() {
-	for {
-		robotgo.MoveMouse(100, 300)
-		time.Sleep(time.Second)
-		robotgo.MoveMouse(300, 500)
-		time.Sleep(time.Minute * 4)
-	}
 }
 
 func getInfoFromExcel() [][]string {

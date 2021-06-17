@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"image"
@@ -9,15 +8,35 @@ import (
 	"image/jpeg"
 	"os"
 	"path/filepath"
-	"sifamaGO/src/db"
 	"sifamaGO/src/util"
 	"strings"
 
 	"github.com/fogleman/gg"
 	"github.com/nfnt/resize"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
+
+type Session struct {
+	gorm.Model
+	Hash           string
+	Concessionaria string
+	Tros           []Tro // `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+}
+type Tro struct {
+	gorm.Model
+	ID            uint
+	PalavraChave  string
+	Observacao    string
+	Prazo         string
+	TipoPrazo     string
+	Severidade    string
+	Disposicao    string
+	DisposicaoCod string
+	DisposicaoArt string
+	Locais        []Local // `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	SessionID     uint
+	Session       Session `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+}
 
 type Foto struct {
 	gorm.Model
@@ -26,7 +45,7 @@ type Foto struct {
 	Path       template.URL
 	Legenda    string
 	LocalID    uint
-	Local      Local
+	Local      Local `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Latitude   float64
 	Longitude  float64
 	GeoRodovia string
@@ -54,21 +73,7 @@ type Local struct {
 	Valid            bool
 	Fotos            []Foto `gorm:"ForeignKey:LocalID"`
 	TroID            uint
-	Tro              Tro
-}
-
-type Tro struct {
-	gorm.Model
-	ID            uint
-	PalavraChave  string
-	Observacao    string
-	Prazo         string
-	TipoPrazo     string
-	Severidade    string
-	Disposicao    string
-	DisposicaoCod string
-	DisposicaoArt string
-	Locais        []Local // `gorm:"ForeignKey:TroID"`
+	Tro              Tro `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 type Folder struct {
@@ -97,7 +102,7 @@ type Geolocation struct {
 	Longitude float64 `gorm:"precision:20"`
 }
 
-func (foto Foto) Merge() error {
+func (foto Foto) Merge(linha int) error {
 
 	caption := foto.Legenda
 	filePath := string(foto.Path)
@@ -143,7 +148,7 @@ func (foto Foto) Merge() error {
 			line3 = line3 + word + " "
 		}
 		if len(line3) > 50 {
-			err := errors.New("extensão máxima da descrição de fotos atingida. diminua a descrição")
+			err := fmt.Errorf("extensão máxima da descrição de fotos atingida. diminua a descrição da linha %d", linha)
 			return err
 		}
 	}
@@ -214,21 +219,4 @@ func (foto Foto) Merge() error {
 
 	return nil
 
-}
-
-func (tro Tro) FindAll() []Tro {
-	var troList []Tro
-	db.GetDB().Preload("Locais.Fotos").Preload(clause.Associations).Find(&troList)
-
-	return troList
-}
-func (local Local) FindAll() []Local {
-	var localList []Local
-	db.GetDB().Preload("Fotos").Find(&localList)
-	return localList
-}
-func (tro Tro) findAllFotos() []Tro {
-	var troList []Tro
-	db.GetDB().Preload("Locais.Fotos").Preload(clause.Associations).Find(&troList)
-	return troList
 }

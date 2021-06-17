@@ -1,9 +1,132 @@
 
-async function startDigitacao() {
+async function getResponseFromServer(userId, pwdId, spinnerID, errorDivId, successDivId, API, requestData) {
 
-    user = document.getElementById('user').value
-    pwd = document.getElementById('password').value
+    if (userId.length > 1) {
+        console.log('entrou no null')
+        clearForm([userId, pwdId])
+    }
 
+
+    spinner = document.getElementById(spinnerID)
+    successDiv = document.getElementById(successDivId)
+    errorDiv = document.getElementById(errorDivId)
+    errorDiv.style.display = 'none'
+    successDiv.style.display = 'none'
+
+    spinner.style.display = 'inline-block'
+
+    const response = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify(requestData)
+    });
+
+    let responseText = await response.text();
+    let status = response.status;
+
+    console.log(status)
+    console.log(responseText)
+
+    if (status != 200) {
+        spinner.style.display = 'none'
+        const newDiv = document.createElement('div')
+        responseText = responseText.replace(/\n/g, '</br>')
+        newDiv.innerHTML = responseText
+        while (errorDiv.firstChild) {
+            errorDiv.removeChild(errorDiv.firstChild);
+        }
+        errorDiv.style.display = 'inline-block';
+        errorDiv.appendChild(newDiv)
+        spinner.style.display = 'none'
+        return false
+    } else {
+        let newDiv = document.createElement('div')
+        spinner.style.display = 'none'
+        successDiv.style.display = 'inline-block'
+        newDiv.innerHTML = responseText
+        while (successDiv.firstChild) {
+            successDiv.removeChild(successDiv.firstChild);
+        }
+        successDiv.appendChild(newDiv)
+        return true
+    }
+
+}
+
+function formValidator(userId, pwdId, notificationId) {
+    notificationDiv = document.getElementById(notificationId)
+    const user = document.getElementById(userId).value
+    const pwd = document.getElementById(pwdId).value
+
+    if (user.length < 2 || pwd.length < 2) {
+        let timer = document.createElement('div')
+        timer.innerHTML = "Os campos devem ser preenchidos antes de enviar. Tente novamente... "
+        while (notificationDiv.firstChild) {
+            notificationDiv.removeChild(notificationDiv.firstChild);
+        }
+        notificationDiv.style.display = 'inline-block';
+        notificationDiv.appendChild(timer)
+        setTimeout(() => {
+            notificationDiv.style.display = 'none';
+        }, 2000);
+
+        return false
+    } else {
+        return true
+    }
+
+}
+
+function clearForm(fieldsId) {
+
+    for (x in fieldsId) {
+        document.getElementById(fieldsId[x]).value = '';
+    }
+}
+
+async function checkSifama1() {
+
+    console.log('entrou checksifama1')
+    const userId = 'user'
+    const pwdId = 'password'
+
+    const user = document.getElementById(userId).value
+    const pwd = document.getElementById(pwdId).value
+
+    const valid = formValidator('user', 'password', "notification1")
+
+    if (!valid) {
+        return
+    }
+
+    const requestData = {
+        StartDigitacao: true,
+        User: user,
+        Passd: pwd
+    };
+
+    getResponseFromServer(userId,
+        pwdId,
+        'spinnerCheck',
+        'notification1',
+        'success',
+        '/checkSifama',
+        requestData)
+}
+
+async function startDigitacao1() {
+
+    userId = 'user'
+    passwordId = 'password'
+    notificationDivId = 'notification'
+    spinnerId = 'spinner1'
+    successId = 'success'
+    API = '/report'
+
+    valid = formValidator(userId, passwordId, notificationDivId)
+
+    if (!valid) {
+        return
+    }
 
     const requestData = {
         StartDigitacao: true,
@@ -13,115 +136,24 @@ async function startDigitacao() {
 
     };
 
-    if (user == "" || pwd == "") {
-
-        let timer = document.createElement('div')
-        timer.innerHTML = "Os campos devem ser preenchidos antes de enviar. Tente novamente... "
-        div = document.getElementById('notification')
-        while (div.firstChild) {
-            div.removeChild(div.firstChild);
-        }
-        div.style.visibility = 'visible'
-
-        div.appendChild(timer)
-        setTimeout(() => {
-            div.style.visibility = 'hidden'
-        }, 2000);
-
-    } else {
-
-        document.getElementById('user').value = '';
-        document.getElementById('password').value = '';
-
-        const responseText = await fetch('/report', {
-            method: 'POST',
-            body: JSON.stringify(requestData)
-        }).then(response => response.text());
-
-        let timer = document.createElement('div')
-        timer.innerHTML = responseText
-        div = document.getElementById('notification')
-        while (div.firstChild) {
-            div.removeChild(div.firstChild);
-        }
-        div.style.visibility = 'visible'
-        div.appendChild(timer)
-    }
-
+    getResponseFromServer(
+        userId,
+        passwordId,
+        spinnerId,
+        notificationDivId,
+        successId,
+        API,
+        requestData)
 }
 
+async function toReport1() {
 
-async function checkSifama() {
-
-    user = document.getElementById('user').value
-    pwd = document.getElementById('password').value
-    notificationDiv = document.getElementById('notification')
-    notificationDiv.style.display = 'none';
-    spinner = document.getElementById('spinnerCheck')
-
-
-    const requestData = {
-        StartDigitacao: true,
-        User: user,
-        Passd: pwd
-
-    };
-
-    console.log('checkSifama()')
-
-    if (user == "" || pwd == "") {
-
-        let timer = document.createElement('div')
-        timer.innerHTML = "Os campos devem ser preenchidos antes de enviar. Tente novamente... "
-        div = document.getElementById('notification')
-        while (div.firstChild) {
-            div.removeChild(div.firstChild);
-        }
-
-        div.style.display = 'inline-block';
-
-        div.appendChild(timer)
-        setTimeout(() => {
-            div.style.display = 'none';
-        }, 2000);
-
-    } else {
-
-        document.getElementById('user').value = '';
-        document.getElementById('password').value = '';
-
-        // spinner = document.getElementById('spinnerCheck')
-        spinner.style.display = 'inline-block'
-
-        const response = await fetch('/checkSifama', {
-            method: 'POST',
-            body: JSON.stringify(requestData)
-        });
-
-        let responseText = await response.text();
-        let status = response.status;
-
-        if (status != 200) {
-            spinner.style.display = 'none'
-            let newDiv = document.createElement('div')
-            responseText = responseText.replace(/\n/g, '</br>')
-            newDiv.innerHTML = responseText
-            notificationDiv = document.getElementById('notification')
-            while (notificationDiv.firstChild) {
-                notificationDiv.removeChild(notificationDiv.firstChild);
-            }
-            notificationDiv.style.display = 'inline-block';
-            notificationDiv.appendChild(newDiv)
-        } else {
-            spinner.style.display = 'none'
-            console.log("finish")
-
-        }
-        spinner.style.display = 'none'
-    }
-}
-
-async function toReport() {
+    userId = null
+    passwordId = null
+    notificationDivId = 'notification'
+    spinnerId = 'spinner'
+    successId = 'success'
+    API = '/'
 
     folder = document.getElementById('homeselect').value
     title = document.getElementById('hometitle').value
@@ -129,40 +161,30 @@ async function toReport() {
     document.getElementById('reduzir').disabled = true;
     document.getElementById('gerarInput').disabled = true;
 
-    spinner = document.getElementById('spinner')
-    spinner.style.visibility = 'visible'
-
     const requestData = {
         Folder: folder,
         Title: title,
     };
 
+    success = await getResponseFromServer(
+        userId,
+        passwordId,
+        spinnerId,
+        notificationDivId,
+        successId,
+        API,
+        requestData);
 
-    const response = await fetch('/', {
-        method: 'POST',
-        body: JSON.stringify(requestData)
-    });
+    document.getElementById('reduzir').disabled = false;
+    document.getElementById('gerarInput').disabled = false;
 
-    let text = await response.text();
-    let status = response.status;
+    console.log(succcess)
 
-    if (status != 200) {
-        let timer = document.createElement('div')
-        timer.innerHTML = text;
-        div = document.getElementById('notification')
-        while (div.firstChild) {
-            div.removeChild(div.firstChild);
-        }
-        div.style.visibility = 'visible'
-        div.appendChild(timer)
-        spinner.style.visibility = 'hidden'
-        document.getElementById('reduzir').disabled = false;
-        document.getElementById('gerarInput').disabled = false;
-    } else {
+    if (success) {
         window.location.href = '/report';
     }
-
 }
+
 
 function saveFile() {
     elements = document.getElementsByClassName('alert');
@@ -198,15 +220,16 @@ function saveFile() {
     }
 
     document.getElementById('sifamaForm').style.visibility = "hidden";
-
 }
-
 
 async function restart() {
 
     document.getElementById('save-file-button').disabled = true;
     document.getElementById('redobutton').disabled = true;
 
+    notificationDiv = document.getElementById('notification')
+
+    notificationDiv.style.display = 'none'
     spinner = document.getElementById('spinner')
     spinner.style.visibility = 'visible'
 
@@ -223,17 +246,18 @@ async function restart() {
     let text = await response.text();
     let status = response.status;
 
-
     if (status != 200) {
+
         let timer = document.createElement('div')
         timer.innerHTML = text;
-        div = document.getElementById('notification')
-        while (div.firstChild) {
-            div.removeChild(div.firstChild);
+        while (notificationDiv.firstChild) {
+            notificationDiv.removeChild(notificationDiv.firstChild);
         }
-        div.style.visibility = 'visible'
-        div.appendChild(timer)
+        notificationDiv.style.display = 'inline-block'
+        notificationDiv.appendChild(timer)
         spinner.style.visibility = 'hidden'
+
+
         document.getElementById('save-file-button').disabled = false;
         document.getElementById('redobutton').disabled = false;
     } else {
@@ -244,32 +268,79 @@ async function restart() {
 function compactImages() {
     document.getElementById('reduzir').disabled = true;
     document.getElementById('gerarInput').disabled = true;
-    document.getElementById('spinner').style.visibility = "visible";
-
-    compact()
-
+    // document.getElementById('spinner').style.visibility = "visible";
+    compact1()
+    document.getElementById('reduzir').disabled = false;
+    document.getElementById('gerarInput').disabled = false;
 }
 
-async function compact() {
-    folder = document.getElementById('homeselect').value
-    console.log(folder)
+async function compact1() {
+
+    const folder = document.getElementById('homeselect').value
+    const errorDivId = 'notification'
+    const successId = 'success1'
+    const spinnerId = 'spinner'
+    const API = '/compact'
+
+    const userId = ""
+    const passwordId = ""
+
     const requestData = {
         Compact: true,
         Folder: folder,
     };
 
-    const response = fetch('/compact', {
+
+    getResponseFromServer(
+        userId,
+        passwordId,
+        spinnerId,
+        errorDivId,
+        successId,
+        API,
+        requestData)
+
+}
+
+async function compact() {
+    folder = document.getElementById('homeselect').value
+    errorDiv = document.getElementById('notification')
+    errorDiv.style.display = 'none'
+    successDiv = document.getElementById('success1')
+    spinner = document.getElementById('spinner')
+    spinner.style.visibility = 'visible'
+    const requestData = {
+        Compact: true,
+        Folder: folder,
+    };
+
+    const response = await fetch('/compact', {
         method: 'POST',
         body: JSON.stringify(requestData)
     });
 
-    status = (await response).status
+    let responseText = await response.text();
+    let status = response.status;
+    console.log(status)
+    console.log(responseText)
 
-    if (await status == 200) {
-        window.location.reload()
+    if (status != 200) {
+        spinner.style.visibility = 'hidden'
+        let newDiv = document.createElement('div')
+        newDiv.innerHTML = responseText
+        while (errorDiv.firstChild) {
+            errorDiv.removeChild(errorDiv.firstChild);
+        }
+        errorDiv.style.display = 'inline-block'
+        errorDiv.appendChild(newDiv)
     } else {
-        console.log('pagina nao carregou')
-        console.log(status)
-        throw new Error("não carregou")
+        spinner.style.visibility = 'hidden'
+        let newDiv = document.createElement('div')
+        newDiv.innerHTML = responseText
+        while (successDiv.firstChild) {
+            successDiv.removeChild(successDiv.firstChild);
+        }
+        successDiv.style.display = 'inline-block'
+        successDiv.appendChild(newDiv)
     }
 }

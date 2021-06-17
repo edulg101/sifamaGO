@@ -61,22 +61,26 @@ func getConcessionariaValue() (string, error) {
 	return "", fmt.Errorf("não foi possível determinar a concessionária.")
 }
 
-func InicioDigitacao() error {
+func InicioDigitacao(user, password string) (string, error) {
 
-	go KeepMouseMoving()
+	var returnMessage string
 
 	ops := []selenium.ServiceOption{}
 	_, err := selenium.NewChromeDriverService(util.SELENIUMPATH, util.SeleniumPORT, ops...)
 	if err != nil {
-		fmt.Printf("Error starting the ChromeDriver server: %v", err)
+		_, err = selenium.NewChromeDriverService(util.SELENIUMPATH, util.SeleniumPORT, ops...)
+		if err != nil {
+			fmt.Printf("Error starting the ChromeDriver server: %v", err)
+			return returnMessage, err
+		}
 	}
 
 	caps := selenium.Capabilities{
 		"browserName": "chrome",
 	}
-	driver, err := selenium.NewRemote(caps, "http://127.0.0.1:9515/wd/hub")
+	driver, err := selenium.NewRemote(caps, "http://127.0.0.1:9000/wd/hub")
 	if err != nil {
-		return fmt.Errorf(fmt.Sprint(err))
+		return returnMessage, fmt.Errorf(fmt.Sprint(err))
 	}
 
 	// defer driver.Quit()
@@ -88,19 +92,19 @@ func InicioDigitacao() error {
 
 	usuario, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_TextBoxUsuario")
 	if err != nil {
-		return fmt.Errorf(fmt.Sprint(err))
+		return returnMessage, fmt.Errorf(fmt.Sprint(err))
 	}
 	senha, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_TextBoxSenha")
 	if err != nil {
-		return fmt.Errorf(fmt.Sprint(err))
+		return returnMessage, fmt.Errorf(fmt.Sprint(err))
 	}
 	entrar, err := driver.FindElement(selenium.ByID, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ButtonOk")
 	if err != nil {
-		return fmt.Errorf(fmt.Sprint(err))
+		return returnMessage, fmt.Errorf(fmt.Sprint(err))
 	}
 
-	usuario.SendKeys(util.USER)
-	senha.SendKeys(util.PWD)
+	usuario.SendKeys(user)
+	senha.SendKeys(password)
 
 	fmt.Println("entrando com senha")
 
@@ -108,26 +112,28 @@ func InicioDigitacao() error {
 
 	waitForJsAndJquery(driver)
 
-	err = inicioTro(driver)
+	returnMessage, err = inicioTro(driver)
 	if err != nil {
-		return err
+		return returnMessage, err
 	}
 
 	// Alert After job is done.
 	driver.ExecuteScript("alert('Terminou')", nil)
 
-	return nil
+	return returnMessage, nil
 
 }
 
-func inicioTro(driver selenium.WebDriver) error {
+func inicioTro(driver selenium.WebDriver) (string, error) {
 
-	var t model.Tro
+	quit := make(chan string)
+	go KeepMouseMoving(quit)
 
-	troList := t.FindAll()
+	troList := service.FindAllTro()
 
 	totalTro := len(troList)
 
+	actualTro := 0
 	primeiro := true
 	for i, tro := range troList {
 		time.Sleep(time.Second / 2)
@@ -137,17 +143,22 @@ func inicioTro(driver selenium.WebDriver) error {
 			driver.ExecuteScript("document.getElementById('MessageBox_ButtonOk').click()", nil)
 		}
 		primeiro = false
-		actualTro := i + 1
+		actualTro = i + 1
 
 		waitForProcessBar(driver, idProcessando)
 
+		if i == (totalTro - 1) {
+			quit <- "quit"
+		}
+
 		err = registroTro(tro, driver, actualTro, totalTro)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 	}
-	return nil
+	sucessMessage := fmt.Sprint("Sucesso, foram registrados %d TROs.", actualTro)
+	return sucessMessage, nil
 }
 
 func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro int) error {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 	_ "github.com/go-sql-driver/mysql"
-	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -31,7 +30,7 @@ func GetDBGEO() *gorm.DB {
 func createDBGEO() *gorm.DB {
 	var err error
 	// databaseName := ":memory:"
-	databaseName := "geoDatabase.db"
+	databaseName := "database/geoDatabase.db"
 
 	db, err = gorm.Open(sqlite.Open(databaseName), &gorm.Config{})
 
@@ -95,35 +94,4 @@ func parseSpreadSheet(rows [][]string, db *gorm.DB) error {
 
 	}
 	return nil
-}
-
-func printAllRows() {
-	var locations []Geolocation
-	db.Find(&locations)
-
-	for _, location := range locations {
-		fmt.Printf("Rodovia %s. Km: %f, lat: %.15f, long: %.15f\n",
-			location.Rodovia,
-			location.Km,
-			location.Latitude,
-			location.Longitude)
-	}
-}
-
-// Conectar funcao com banco de dados
-func ConectarSql() {
-	stringConexao := "eduardo:123456@/crogeo?charset=utf8&parseTime=True&loc=Local"
-
-	var err error
-	dbsql, err = gorm.Open(mysql.Open(stringConexao), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	db.AutoMigrate(&Geolocation{})
-
-	ImportSpreadSheet()
-	fmt.Println("print")
-	printAllRows()
-	// populateMockDB()
 }

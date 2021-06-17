@@ -25,13 +25,19 @@ func ProperTitle(input string) string {
 	return strings.Join(words, " ")
 }
 
-func KeepMouseMoving() {
+func KeepMouseMoving(quit chan string) {
 	for {
-		robotgo.MoveMouse(100, 300)
-		time.Sleep(time.Minute * 2)
-		robotgo.MoveMouse(300, 500)
-		time.Sleep(time.Minute * 2)
+		select {
+		case <-quit:
+			return
+		default:
+			robotgo.MoveMouse(100, 300)
+			time.Sleep(time.Minute * 3)
+			robotgo.MoveMouse(300, 500)
+			time.Sleep(time.Second * 3)
+		}
 	}
+
 }
 
 func IsTrechosDNIT(km float64) bool {
@@ -326,7 +332,7 @@ func GetDescricaoDisposicaoLegal(codstr string) string {
 	return descricao[cod]
 }
 
-func getEstadoERodovia(word string, i int) (string, string, error) {
+func getEstadoERodovia(word string, i int) (string, string, string, error) {
 
 	if strings.Contains(word, "mt") && (strings.Contains(word, "364") || strings.Contains(word, "70") || strings.Contains(word, "163")) {
 		util.CONCESSIONARIA = "CRO"
@@ -338,7 +344,7 @@ func getEstadoERodovia(word string, i int) (string, string, error) {
 		util.CONCESSIONARIA = "ECO050"
 		return getEstadoERodoviaEco050(word, i)
 	} else {
-		return "", "", fmt.Errorf("nao foi possivel identificar a concessionária a partir do primeiro local")
+		return "", "", "", fmt.Errorf("nao foi possivel identificar a concessionária a partir do primeiro local")
 	}
 
 }
@@ -366,57 +372,60 @@ func CheckKmEco050(estado, rodovia string, km float64, palavraChave string) (boo
 	return false, false
 }
 
-func getEstadoERodoviaCRO(word string, i int) (string, string, error) {
+func getEstadoERodoviaCRO(word string, i int) (string, string, string, error) {
 	var rodovia string
 	estado := "MT"
+	concessionaria := "CRO"
 	if strings.Contains(word, "070") {
 		rodovia = "70"
-		return rodovia, estado, nil
+		return concessionaria, rodovia, estado, nil
 	} else if strings.Contains(word, "163") {
 		rodovia = "163"
-		return rodovia, estado, nil
+		return concessionaria, rodovia, estado, nil
 	} else if strings.Contains(word, "364") {
 		rodovia = "364"
-		return rodovia, estado, nil
+		return concessionaria, rodovia, estado, nil
 	} else {
 		err := fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
-		return rodovia, estado, err
+		return concessionaria, rodovia, estado, err
 	}
 
 }
 
-func getEstadoERodoviaEco050(word string, i int) (string, string, error) {
+func getEstadoERodoviaEco050(word string, i int) (string, string, string, error) {
 	var estado string
 	var rodovia string
+	concessionaria := "ECO050"
 
 	if strings.Contains(word, "050/mg") && !strings.Contains(word, "torno") {
 		rodovia = "50"
 		estado = "MG"
-		return rodovia, estado, nil
+		return concessionaria, rodovia, estado, nil
 
 	} else if strings.Contains(word, "050/go") {
 		rodovia = "50"
 		estado = "GO"
-		return rodovia, estado, nil
+		return concessionaria, rodovia, estado, nil
 	} else if strings.Contains(word, "contorno") {
 		rodovia = "Contorno de Uberlândia"
 		estado = "MG"
-		return rodovia, estado, nil
+		return concessionaria, rodovia, estado, nil
 	} else {
 		err := fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
-		return rodovia, estado, err
+		return concessionaria, rodovia, estado, err
 	}
 }
-func getEstadoERodoviaMsVia(word string, i int) (string, string, error) {
+func getEstadoERodoviaMsVia(word string, i int) (string, string, string, error) {
 	var estado string
 	var rodovia string
+	concessionaria := "MSVIA"
 	if strings.Contains(word, "163") {
 		rodovia = "163"
 		estado = "MS"
-		return rodovia, estado, nil
+		return concessionaria, rodovia, estado, nil
 	}
 	err := fmt.Errorf("erro. não consegui identificar Rodovia na linha %v.... abortando", i+1)
-	return rodovia, estado, err
+	return concessionaria, rodovia, estado, err
 }
 
 //art 4

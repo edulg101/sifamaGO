@@ -17,7 +17,7 @@ func GetDB() *gorm.DB {
 func ConectDB() {
 	var err error
 	databaseName := ":memory:"
-	// databaseName := "gb9.db"
+	// databaseName := "gbguru.db"
 
 	err = os.Remove(databaseName)
 	if err != nil {
@@ -30,10 +30,4 @@ func ConectDB() {
 		panic("failed to connect database")
 	}
 
-}
-
-func CleanUpDB(db *gorm.DB) {
-	db.Exec("DELETE FROM 'fotos' WHERE id > 0")
-	db.Exec("DELETE FROM 'locals' WHERE id > 0")
-	db.Exec("DELETE FROM 'tros' WHERE id > 0")
 }

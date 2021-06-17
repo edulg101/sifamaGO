@@ -147,7 +147,7 @@ func scriptToFillField(driver selenium.WebDriver, id, value string) {
 	errorHandle(err)
 }
 
-func checkForErrors(driver selenium.WebDriver) {
+func checkForErrors(driver selenium.WebDriver) error {
 	var divError selenium.WebElement
 	var err error
 	for i := 0; i < 10; i++ {
@@ -161,26 +161,14 @@ func checkForErrors(driver selenium.WebDriver) {
 			message, _ := divText.Text()
 			title = strings.ToLower(title)
 			fmt.Println(message)
-			scanner := bufio.NewScanner(os.Stdin)
 			if !strings.Contains(message, "salvar") && !strings.Contains(title, "cadastro") {
-				fmt.Println(title)
-				var resp string
-				fmt.Println("Deu Erro. Ajuste e Digite em 'Sim' para continuar")
-				for scanner.Scan() {
-					resp = scanner.Text()
-				}
-				for strings.ToLower(resp) != "sim" {
-					fmt.Println("Deu Erro. Ajuste e Digite em 'Sim' para continuar")
-					for scanner.Scan() {
-						resp = scanner.Text()
-					}
-				}
-			} else {
-				return
+				return fmt.Errorf(message)
 			}
+
 		}
 		time.Sleep(time.Second / 2)
 	}
+	return nil
 }
 
 func jqueryScriptWithChange(driver selenium.WebDriver, id, value string) {
@@ -277,4 +265,36 @@ func errorHandle(e error) {
 		log.Println(e)
 		panic(e)
 	}
+}
+
+func checkForErrorsCkeckSifama(driver selenium.WebDriver) error {
+	var divError selenium.WebElement
+	var err error
+	for i := 0; i < 10; i++ {
+		divError, err = driver.FindElement("id", "MessageBox_LabelTitulo")
+		if err != nil {
+			return err
+		}
+		displayed, _ := divError.IsDisplayed()
+		if displayed {
+			message, _ := divError.Text()
+			message = strings.ToLower(message)
+			scanner := bufio.NewScanner(os.Stdin)
+			if !strings.Contains(message, "sucesso") {
+				var resp string
+				fmt.Println("Deu Erro. Ajuste e Digite em 'Sim' para continuar")
+				for scanner.Scan() {
+					resp = scanner.Text()
+				}
+				for strings.ToLower(resp) != "sim" {
+					fmt.Println("Deu Erro. Ajuste e Digite em 'Sim' para continuar")
+					for scanner.Scan() {
+						resp = scanner.Text()
+					}
+				}
+			}
+		}
+		time.Sleep(time.Second / 2)
+	}
+	return nil
 }
