@@ -27,14 +27,14 @@ func ProperTitle(input string) string {
 
 func KeepMouseMoving(quit chan string) {
 	for {
+		x, y := robotgo.GetMousePos()
 		select {
 		case <-quit:
 			return
 		default:
-			robotgo.MoveMouse(100, 300)
 			time.Sleep(time.Minute * 3)
-			robotgo.MoveMouse(300, 500)
-			time.Sleep(time.Second * 3)
+			robotgo.MoveMouse(x+2, y)
+			robotgo.MoveMouse(x, y)
 		}
 	}
 
@@ -344,7 +344,7 @@ func getEstadoERodovia(word string, i int) (string, string, string, error) {
 		util.CONCESSIONARIA = "ECO050"
 		return getEstadoERodoviaEco050(word, i)
 	} else {
-		return "", "", "", fmt.Errorf("nao foi possivel identificar a concessionária a partir do primeiro local")
+		return "", "", "", fmt.Errorf("não foi possível identificar a concessionária a partir do registro da Rodovia da linha %d", i+1)
 	}
 
 }

@@ -431,7 +431,12 @@ func ResizeAllImagesInFolder(path string, width uint) (string, error) {
 		}
 		return err
 	})
-	returnMessage := fmt.Sprintf("Sucesso ! %d imagens Compactadas", totalImagesDone)
+	var returnMessage string
+	if totalImagesDone > 0 {
+		returnMessage = fmt.Sprintf("Sucesso ! %d imagens Compactadas", totalImagesDone)
+	} else {
+		returnMessage = "Não há nenhuma imagem para ser compactada na pasta selecionada"
+	}
 	fmt.Println(returnMessage)
 	return returnMessage, err
 }

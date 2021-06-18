@@ -94,7 +94,9 @@ func CheckSifama(user, pass string) (string, error) {
 		tro := tros[i]
 		driver.SwitchWindow(mainWindow)
 		if i == (len(tros) - 1) {
-			quit <- "quit"
+			go func() {
+				quit <- "quit"
+			}()
 		}
 		returnMessage, err = inicioVerificacao(driver, tro, pass, tros, i)
 		if err != nil {
@@ -145,7 +147,7 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 	}
 
 	totalTros := len(tros)
-	sucessMessage := fmt.Sprintf("Foram Registratos %d TROs com Sucesso !", totalTros)
+	sucessMessage := fmt.Sprintf("Foram Registratos %d TROs com Sucesso !", totalTros-1)
 
 	var listaTrosEmOrdem []int
 	for _, we := range listaTros {

@@ -148,7 +148,9 @@ func inicioTro(driver selenium.WebDriver) (string, error) {
 		waitForProcessBar(driver, idProcessando)
 
 		if i == (totalTro - 1) {
-			quit <- "quit"
+			go func() {
+				quit <- "quit"
+			}()
 		}
 
 		err = registroTro(tro, driver, actualTro, totalTro)
@@ -157,7 +159,7 @@ func inicioTro(driver selenium.WebDriver) (string, error) {
 		}
 
 	}
-	sucessMessage := fmt.Sprint("Sucesso, foram registrados %d TROs.", actualTro)
+	sucessMessage := fmt.Sprintf("Sucesso, foram registrados %d TROs.", actualTro)
 	return sucessMessage, nil
 }
 

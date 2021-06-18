@@ -122,6 +122,11 @@ async function startDigitacao1() {
     successId = 'success'
     API = '/report'
 
+    // document.getElementById(spinnerId).style.display = 'inline-block'
+
+    user = document.getElementById(userId).value
+    pwd = document.getElementById(passwordId).value
+
     valid = formValidator(userId, passwordId, notificationDivId)
 
     if (!valid) {
@@ -148,8 +153,8 @@ async function startDigitacao1() {
 
 async function toReport1() {
 
-    userId = null
-    passwordId = null
+    userId = ''
+    passwordId = ''
     notificationDivId = 'notification'
     spinnerId = 'spinner'
     successId = 'success'
@@ -178,7 +183,7 @@ async function toReport1() {
     document.getElementById('reduzir').disabled = false;
     document.getElementById('gerarInput').disabled = false;
 
-    console.log(succcess)
+    console.log(success)
 
     if (success) {
         window.location.href = '/report';
