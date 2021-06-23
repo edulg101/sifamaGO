@@ -109,7 +109,11 @@ func HomePost(w http.ResponseWriter, r *http.Request) {
 	var request Request
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&request)
-	errorHandle(err)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprint(err)))
+		return
+	}
 
 	fmt.Println("start digitacao", request.StartDigitacao)
 	fmt.Println("Restart", request.Restart)
@@ -150,7 +154,11 @@ func Compact(w http.ResponseWriter, r *http.Request) {
 	var request Request
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&request)
-	errorHandle(err)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprint(err)))
+		return
+	}
 
 	if request.Compact {
 		util.ORIGINIMAGEPATH = filepath.Join(util.ROOTPATH, request.Folder)
@@ -160,14 +168,17 @@ func Compact(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			message = fmt.Sprint(err)
 			w.Write([]byte(message))
+			return
 		} else {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(message))
+			return
 		}
 
 	} else {
 		w.Write([]byte("ocorreu um erro"))
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 }

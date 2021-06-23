@@ -79,14 +79,13 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 				}
 			}
 
-			url := filepath.Join("fotos", name)
-			url = filepath.ToSlash(url)
-			urlp := template.URL(url)
-
 			name, err = CheckForNameSize(currentPath)
 			if err != nil {
 				return err
 			}
+			url := filepath.Join("fotos", name)
+			url = filepath.ToSlash(url)
+			urlp := template.URL(url)
 
 			l := *local
 
@@ -385,6 +384,7 @@ func resizeImageAndCopyMetadata(imagePath string, size uint) error {
 
 	err = copyAllMetadata(oldFilePath, imagePath)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	err = os.Remove(oldFilePath)
@@ -406,7 +406,15 @@ func ResizeAllImagesInFolder(path string, width uint) (string, error) {
 			}
 
 		}
-		_, name := filepath.Split(currentPath)
+		base, name := filepath.Split(currentPath)
+		if len(name) > 90 {
+			name, err = CheckForNameSize(currentPath)
+			if err != nil {
+				return err
+			}
+			currentPath = filepath.Join(base, name)
+
+		}
 
 		if !info.IsDir() && (strings.HasSuffix(name, "jpg") || strings.HasSuffix(name, "jpeg") || strings.HasSuffix(name, "png")) {
 			imgFile, err := os.Open(currentPath)
@@ -421,7 +429,7 @@ func ResizeAllImagesInFolder(path string, width uint) (string, error) {
 			if conf.Width > int(width) {
 				err = resizeImageAndCopyMetadata(currentPath, width)
 				if err != nil {
-					return fmt.Errorf("não foi possível reduzir o arquivo: %s", currentPath)
+					return fmt.Errorf("não foi possível reduzir o arquivo: %s\n", currentPath+err.Error())
 				} else {
 					totalImagesDone++
 				}
@@ -431,6 +439,7 @@ func ResizeAllImagesInFolder(path string, width uint) (string, error) {
 		}
 		return err
 	})
+
 	var returnMessage string
 	if totalImagesDone > 0 {
 		returnMessage = fmt.Sprintf("Sucesso ! %d imagens Compactadas", totalImagesDone)

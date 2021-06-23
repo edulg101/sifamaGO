@@ -221,7 +221,6 @@ func waitForProcessBar(driver selenium.WebDriver, id string) (selenium.WebElemen
 			continue
 		}
 		enabled, err = we.IsDisplayed()
-		fmt.Printf("primeiro For. vez %d. enabled? %v \n", i, enabled)
 		if we != nil && e == nil && err == nil && enabled {
 			break
 		}
@@ -231,13 +230,12 @@ func waitForProcessBar(driver selenium.WebDriver, id string) (selenium.WebElemen
 		for i := 0; i < 1000; i++ {
 			we, err := driver.FindElement(selenium.ByID, id)
 			enabled, e := we.IsDisplayed()
-			fmt.Printf("Segundo For. vez %d. enabled? %v \n", i, enabled)
 			if we != nil && err == nil && e == nil && !enabled {
 				return we, err
 			}
 			time.Sleep(time.Second / 4)
 		}
-		e := errors.New("Barra Processando Nunca Desapareceu")
+		e := errors.New("barra processando nunca desapareceu - tente novamente")
 		return we, e
 	}
 	return we, err

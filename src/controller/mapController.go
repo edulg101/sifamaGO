@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"sifamaGO/src/model"
 	"sifamaGO/src/tests/geo"
@@ -33,8 +32,4 @@ func Map(w http.ResponseWriter, r *http.Request) {
 
 type Pontos struct {
 	Points []model.Geolocation
-}
-
-func errorHandle(err error) {
-	fmt.Println(err)
 }

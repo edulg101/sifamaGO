@@ -214,7 +214,8 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 						kmInicial == previousLocal.KmInicial &&
 						kmFinal == previousLocal.KmFinal &&
 						sentido == previousLocal.Sentido &&
-						pista == previousLocal.Pista {
+						pista == previousLocal.Pista &&
+						tro.Observacao == previousLocal.Tro.Observacao {
 
 						fmt.Println("local Repetido")
 						caption, err = IsLocationValid(caption, &local)
@@ -258,7 +259,10 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 			}
 		}
 	}
-	checkForDuplicateTime()
+	err = checkForDuplicateTime()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -269,7 +273,7 @@ type compareTroTime struct {
 	localId int
 }
 
-func checkForDuplicateTime() {
+func checkForDuplicateTime() error {
 
 	tros := service.FindAllTro()
 
@@ -281,6 +285,9 @@ func checkForDuplicateTime() {
 
 	for _, tro := range tros {
 
+		if len(tro.Locais) < 1 {
+			return fmt.Errorf("ocorreu um Erro. Há TRO sem local registrado, verifique a planilha proximo ao tro com descrição: %q", tro.Observacao)
+		}
 		data = tro.Locais[0].Data
 		hora = tro.Locais[0].Hora
 		localId = int(tro.Locais[0].ID)
@@ -289,6 +296,7 @@ func checkForDuplicateTime() {
 			hora:    hora,
 			localId: localId,
 		})
+
 	}
 
 	match := getLocalIdWithDuplicated(list)
@@ -307,6 +315,7 @@ func checkForDuplicateTime() {
 		list[match].hora = local.Hora
 		match = getLocalIdWithDuplicated(list)
 	}
+	return nil
 }
 
 func getLocalIdWithDuplicated(list []compareTroTime) int {
