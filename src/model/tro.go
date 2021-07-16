@@ -193,7 +193,6 @@ func (foto Foto) Merge(linha int) error {
 		im = imaging.Rotate90(im)
 	case 3:
 		im = imaging.Rotate180(im)
-
 	}
 
 	dc.DrawImage(im, 0, -captionHeigth)

@@ -88,7 +88,7 @@ func reportGet(w http.ResponseWriter, r *http.Request) {
 	tros, err := service.FindAllBySession(cookieValue)
 
 	if err != nil {
-		panic(err)
+		http.Redirect(w, r, "/", 302)
 	}
 
 	var localWithNoFotos []model.Local
