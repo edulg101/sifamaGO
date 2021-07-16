@@ -31,7 +31,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		if request.StartDigitacao {
 			user := request.User
 			password := request.Passd
-			returnMessagem, err := selenium.InicioDigitacao(user, password)
+			returnMessagem, err := selenium.InicioDigitacao(r, user, password)
 			if err != nil {
 				w.WriteHeader(http.StatusNotAcceptable)
 				w.Write([]byte(fmt.Sprint(err)))

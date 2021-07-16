@@ -32,6 +32,7 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 	var lat float64
 	var long float64
 	var geoMatch bool
+	var orientation uint
 
 	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -53,15 +54,22 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 
 			metaData, err := exif.Decode(imageRdr)
 
-			// config, _, _ := image.DecodeConfig(imageRdr)
-			// width := config.Width
-			// fmt.Println(width)
-
 			imageRdr.Close()
 
 			if err != nil {
 				fmt.Println("nao consegui Extrair MEtadados da imagem")
 			} else {
+				or, err := metaData.Get(exif.Orientation)
+				if err != nil {
+					orientation = 1
+					fmt.Println("erro no metadata orientation")
+				} else {
+					o1, err := or.Int(0)
+					if err != nil {
+						fmt.Println("erro no metadata orientation")
+					}
+					orientation = uint(o1)
+				}
 
 				lat, long, err = metaData.LatLong()
 
@@ -90,18 +98,19 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 			l := *local
 
 			foto := model.Foto{
-				Nome:       name,
-				Path:       template.URL(filepath.Join(dir, name)),
-				Legenda:    caption,
-				LocalID:    local.ID,
-				Local:      l,
-				Latitude:   lat,
-				Longitude:  long,
-				GeoRodovia: rodovia,
-				GeoKm:      km,
-				GeoMatch:   geoMatch,
-				UrlPath:    urlp,
-				OriginPath: currentPath,
+				Nome:        name,
+				Path:        template.URL(filepath.Join(dir, name)),
+				Legenda:     caption,
+				LocalID:     local.ID,
+				Local:       l,
+				Latitude:    lat,
+				Longitude:   long,
+				GeoRodovia:  rodovia,
+				GeoKm:       km,
+				GeoMatch:    geoMatch,
+				UrlPath:     urlp,
+				OriginPath:  currentPath,
+				Orientation: orientation,
 			}
 
 			db.GetDB().Create(&foto)
@@ -322,7 +331,7 @@ func copyAllMetadata(originPath, targetPath string) error {
 	fmt.Printf("%s para %s\n", originPath, targetPath)
 
 	override := "-overwrite_original"
-	cmd := exec.Command(command, "-TagsFromFile", originPath, targetPath, override)
+	cmd := exec.Command(command, "-TagsFromFile", originPath, "--Orientation", targetPath, override)
 	returnMessage, err := cmd.Output()
 	fmt.Println(string(returnMessage))
 	if err != nil {
@@ -484,4 +493,12 @@ func ResizeImageAndCopyMetadataFromOriginal(imagePath, originPath string, size u
 	}
 	return err
 
+}
+
+func CopyMetaFromAllImages() {
+	var fotos []model.Foto
+	db.GetDB().Find(&fotos)
+	for _, foto := range fotos {
+		copyAllMetadata(foto.OriginPath, filepath.Join(util.OUTPUTIMAGEFOLDER, foto.Nome))
+	}
 }

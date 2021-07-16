@@ -11,6 +11,7 @@ import (
 	"sifamaGO/src/util"
 	"strings"
 
+	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
 	"github.com/nfnt/resize"
 	"gorm.io/gorm"
@@ -40,19 +41,20 @@ type Tro struct {
 
 type Foto struct {
 	gorm.Model
-	ID         uint
-	Nome       string
-	Path       template.URL
-	Legenda    string
-	LocalID    uint
-	Local      Local `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Latitude   float64
-	Longitude  float64
-	GeoRodovia string
-	GeoKm      float64
-	GeoMatch   bool
-	UrlPath    template.URL
-	OriginPath string
+	ID          uint
+	Nome        string
+	Path        template.URL
+	Legenda     string
+	LocalID     uint
+	Local       Local `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Latitude    float64
+	Longitude   float64
+	GeoRodovia  string
+	GeoKm       float64
+	GeoMatch    bool
+	UrlPath     template.URL
+	OriginPath  string
+	Orientation uint
 }
 
 type Local struct {
@@ -111,6 +113,7 @@ func (foto Foto) Merge(linha int) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	img, _, err := image.DecodeConfig(file)
 	if err != nil {
@@ -119,7 +122,11 @@ func (foto Foto) Merge(linha int) error {
 
 	width := img.Width
 	height := img.Height
-
+	//*
+	switch foto.Orientation {
+	case 6, 8:
+		width, height = height, width
+	}
 	defer file.Close()
 
 	fontSize := (float64(width) * 0.036)
@@ -179,6 +186,16 @@ func (foto Foto) Merge(linha int) error {
 		dc.DrawStringAnchored(lines[i], float64(width)/2, captionY, 0.5, 0.5)
 	}
 	im, _ := gg.LoadImage(filePath)
+	switch foto.Orientation {
+	case 6:
+		im = imaging.Rotate270(im)
+	case 8:
+		im = imaging.Rotate90(im)
+	case 3:
+		im = imaging.Rotate180(im)
+
+	}
+
 	dc.DrawImage(im, 0, -captionHeigth)
 	image := dc.Image()
 
@@ -201,6 +218,11 @@ func (foto Foto) Merge(linha int) error {
 	if err != nil {
 		return err
 	}
+
+	// switch foto.Orientation {
+	// case 6:
+	// 	image = imaging.Rotate90(image)
+	// }
 
 	err = jpeg.Encode(final, image, nil)
 	if err != nil {

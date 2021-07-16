@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -13,7 +14,6 @@ import (
 	"sifamaGO/src/selenium"
 	"sifamaGO/src/service"
 	"sifamaGO/src/util"
-	"strconv"
 	"text/template"
 	"time"
 )
@@ -26,17 +26,15 @@ func HomeGet(w http.ResponseWriter, r *http.Request) {
 	cookie, _ = r.Cookie("sifamaGuid")
 
 	if cookie == nil {
-		rand.Seed(time.Now().UnixNano())
-		v := rand.Intn(10000-1) + 1
-		id := strconv.Itoa(v)
-		idFinal := "ABC#" + id
+		cookieValue := createRandamHash()
+
 		cookie := http.Cookie{
-			Name:  "sifamaGuid",
-			Value: idFinal,
+			Name:    "sifamaGuid",
+			Value:   cookieValue,
+			Expires: time.Now().Add(365 * 24 * time.Hour),
 		}
 
 		http.SetCookie(w, &cookie)
-		cookieValue = idFinal
 		// session = dbService.CreateNewSession(cookieValue)
 
 	} else {
@@ -82,19 +80,15 @@ func HomePost(w http.ResponseWriter, r *http.Request) {
 	cookie, _ = r.Cookie("sifamaGuid")
 
 	if cookie == nil {
-		rand.Seed(time.Now().UnixNano())
-		v := rand.Intn(10000-1) + 1
-
-		id := strconv.Itoa(v)
-		idFinal := "ABC#" + id
+		cookieValue := createRandamHash()
 		cookie := http.Cookie{
-			Name:  "sifamaGuid",
-			Value: idFinal,
+			Name:    "sifamaGuid",
+			Value:   cookieValue,
+			Expires: time.Now().Add(365 * 24 * time.Hour),
 		}
-
 		http.SetCookie(w, &cookie)
-		cookieValue = idFinal
 		session = dbService.CreateNewSession(cookieValue)
+		fmt.Println(cookieValue)
 
 	} else {
 		cookieValue = cookie.Value
@@ -181,4 +175,13 @@ func Compact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+func createRandamHash() string {
+	chave := make([]byte, 5)
+	if _, err := rand.Read(chave); err != nil {
+		panic(err)
+	}
+	stringBase64 := base64.StdEncoding.EncodeToString(chave)
+	return stringBase64
 }

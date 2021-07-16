@@ -2,6 +2,7 @@ package selenium
 
 import (
 	"fmt"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
@@ -61,7 +62,7 @@ func getConcessionariaValue() (string, error) {
 	return "", fmt.Errorf("não foi possível determinar a concessionária.")
 }
 
-func InicioDigitacao(user, password string) (string, error) {
+func InicioDigitacao(r *http.Request, user, password string) (string, error) {
 
 	var returnMessage string
 
@@ -78,6 +79,11 @@ func InicioDigitacao(user, password string) (string, error) {
 	caps := selenium.Capabilities{
 		"browserName": "chrome",
 	}
+	// caps.AddChrome(
+	// 	chrome.Capabilities{
+	// 		Args: []string{"--headless"},
+	// 	},
+	// )
 	driver, err := selenium.NewRemote(caps, "http://127.0.0.1:9000/wd/hub")
 	if err != nil {
 		return returnMessage, fmt.Errorf(fmt.Sprint(err))
@@ -112,7 +118,7 @@ func InicioDigitacao(user, password string) (string, error) {
 
 	waitForJsAndJquery(driver)
 
-	returnMessage, err = inicioTro(driver)
+	returnMessage, err = inicioTro(r, driver)
 	if err != nil {
 		return returnMessage, err
 	}
@@ -124,12 +130,17 @@ func InicioDigitacao(user, password string) (string, error) {
 
 }
 
-func inicioTro(driver selenium.WebDriver) (string, error) {
+func inicioTro(r *http.Request, driver selenium.WebDriver) (string, error) {
 
 	quit := make(chan string)
 	go KeepMouseMoving(quit)
 
-	troList := service.FindAllTro()
+	cookie, _ := r.Cookie("sifamaGuid")
+
+	troList, err := service.FindAllBySession(cookie.Value)
+	if err != nil {
+		return "", err
+	}
 
 	totalTro := len(troList)
 
@@ -234,7 +245,9 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 	fmt.Println("informa data : ", data)
 
 	we, err := waitForElementById(driver, idData, 10) // wait for clickable
-	errorHandle(err)
+	if err != nil {
+		return err
+	}
 	we.Click()
 	we.Clear()
 	// waitForProcessBar(driver)
@@ -246,7 +259,9 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 	// consulta.waitForProcessBar();
 
 	we, err = waitForElementById(driver, idHora, 10)
-	errorHandle(err)
+	if err != nil {
+		return err
+	}
 	we.Click()
 
 	waitForJsAndJquery(driver)
@@ -254,16 +269,27 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 
 	fmt.Println("insere descrição ocorrencia")
 
-	flag := false
+	// flag := false
 
-	for !flag {
+	// for !flag {
 
-		we, err := waitForElementById(driver, idDescricaoOcorrencia, 10)
-		errorHandle(err)
-		we.Click()
-		if e := enviaChaves(driver, idDescricaoOcorrencia, observacao); e == nil {
-			flag = true
-		}
+	// 	we, err := waitForElementById(driver, idDescricaoOcorrencia, 20)
+	// 	errorHandle(err)
+
+	// 	we.Click()
+	// 	if e := enviaChaves(driver, idDescricaoOcorrencia, observacao); e == nil {
+	// 		flag = true
+	// 	}
+	// }
+
+	we, err = waitForElementById(driver, idDescricaoOcorrencia, 20)
+	if err != nil {
+		return err
+	}
+
+	we.Click()
+	if e := enviaChaves(driver, idDescricaoOcorrencia, observacao); e != nil {
+		return e
 	}
 
 	waitForJsAndJquery(driver)
@@ -274,7 +300,9 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 	waitForJsAndJquery(driver)
 
 	we, err = waitForElementById(driver, idDescricaoOcorrencia, 20)
-	errorHandle(err)
+	if err != nil {
+		return err
+	}
 	we.Click()
 
 	waitForProcessBar(driver, idProcessando)
@@ -312,15 +340,19 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 
 		fmt.Println("insere Km Inicial e Final")
 
-		we, err = waitForElementById(driver, idkmInicial, 30)
-		errorHandle(err)
+		_, err = waitForElementById(driver, idkmInicial, 30)
+		if err != nil {
+			return err
+		}
 
 		enviaChaves(driver, idkmInicial, kmInicial)
 
 		// consulta.checkForErrors();
 
-		we, err = waitForElementById(driver, idKmFinal, 30)
-		errorHandle(err)
+		_, err = waitForElementById(driver, idKmFinal, 30)
+		if err != nil {
+			return err
+		}
 
 		enviaChaves(driver, idKmFinal, kmFinal)
 
@@ -368,7 +400,9 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 			fmt.Println(imgpath)
 
 			err = enviaChaves(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_uplFotoLocal", imgpath)
-			errorHandle(err)
+			if err != nil {
+				return err
+			}
 
 			countImages++
 
@@ -401,7 +435,9 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 	waitForElementById(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_btnSalvar", 20)
 
 	err = scriptToClick(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_btnSalvar")
-	errorHandle(err)
+	if err != nil {
+		return err
+	}
 	// err = waitForElementToBeClickableAndClick(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_btnSalvar")
 
 	waitForProcessBar(driver, idProcessando)
@@ -410,7 +446,9 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 	checkForErrors(driver)
 
 	err = waitForElementToBeClickableAndClick(driver, "MessageBox_ButtonOk")
-	errorHandle(err)
+	if err != nil {
+		return err
+	}
 	time.Sleep(time.Second * 2)
 	checkForErrors(driver)
 

@@ -177,7 +177,7 @@ func CheckKmCRO(rodovia string, km float64, palavraChave string) (bool, bool, er
 		return true, false, nil
 
 	case "163":
-		return (km < 120 || (km <= 855 && km >= 507.1)), false, nil
+		return (km < 120 || (km <= 854.210 && km >= 507.1)), false, nil
 
 	case "364":
 		if km < 201 || km > 588.2 {

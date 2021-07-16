@@ -13,7 +13,6 @@ func FindSessionByHash(hash string) (*model.Session, error) {
 	var sessions []model.Session
 	db.GetDB().Find(&sessions)
 	for _, session := range sessions {
-		fmt.Println(session.Hash)
 		if session.Hash == hash {
 			return &session, nil
 		}
