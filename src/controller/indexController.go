@@ -98,6 +98,8 @@ func HomePost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	service.CleanUpDB(cookieValue)
+
 	fmt.Println("metodo post entrou")
 
 	var request Request
