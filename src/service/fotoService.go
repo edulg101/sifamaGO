@@ -50,9 +50,9 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 
 		dir, name := filepath.Split(currentPath)
 
-		err = os.Rename(currentPath, filepath.Join(dir, name))
+		// err = os.Rename(currentPath, filepath.Join(dir, name))
 
-		currentPath = filepath.Join(dir, name)
+		// currentPath = filepath.Join(dir, name)
 
 		re := regexp.MustCompile(localId + `[^0-9]`)
 		m := re.MatchString(name)
