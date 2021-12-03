@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -15,6 +18,37 @@ import (
 	"sifamaGO/src/model"
 	"sifamaGO/src/util"
 )
+
+func removeDots(filename string) string {
+	count := strings.Count(filename, ".")
+	if count > 1 {
+		filename = strings.Replace(filename, ".", "", count-1)
+	}
+	return filename
+}
+
+func startRemoveDots() {
+	path := "D:\\OneDrive - ANTT- Agencia Nacional de Transportes Terrestres\\SharePointCRO\\RTA\\2 - Diários\\2021-11\\2021_11_17 RDO"
+	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			panic(err)
+
+		}
+		fmt.Println("currentpath: ", currentPath)
+		dir, name := filepath.Split(currentPath)
+		name = removeDots(name)
+
+		err = os.Rename(currentPath, filepath.Join(dir, name))
+		fmt.Printf("renomeando arquivo: %s", currentPath)
+
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("entrou")
+}
 
 func main() {
 

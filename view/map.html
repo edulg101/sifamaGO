@@ -8,12 +8,13 @@
     <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" media="screen" />
     <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="script/script.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <link rel="stylesheet" type="text/css" href="css/style.css" media="screen" />
     <title>Relatório de TROs</title>
 </head>
 
-<body class="bg-light">
+<body class="bg-light" onload="changeMapHeight()" onresize="changeMapHeight()">
 
     <div style="width: 100%;">
 
@@ -21,14 +22,8 @@
 
     </div>
 
-    <div>
-        {{range .Points}}
-        {{.Rodovia}} Km {{.Km}}
 
-        {{end}}
-    </div>
-
-    <script src="script/script.js"></script>
+    
 
     <script>
 
@@ -44,48 +39,48 @@
 
         function getUrlVars() {
             var vars = {};
-             var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+            var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
                 vars[key] = value;
-                 });
+            });
             return vars;
         }
 
-        
+
 
         console.log(lat)
         console.log(long)
 
         var LeafIcon = L.Icon.extend({
             options: {
-            shadowUrl: 'leaf-shadow.png',
-            iconSize:     [38, 95],
-            shadowSize:   [50, 64],
-            iconAnchor:   [22, 94],
-            shadowAnchor: [4, 62],
-            popupAnchor:  [-3, -76]
-         }
-});
+                shadowUrl: 'leaf-shadow.png',
+                iconSize: [38, 95],
+                shadowSize: [50, 64],
+                iconAnchor: [22, 94],
+                shadowAnchor: [4, 62],
+                popupAnchor: [-3, -76]
+            }
+        });
 
-            var bmarker = L.icon({
-                iconUrl : '/images/blackmarker.png',
-                iconSize: [20, 30],
-                iconAnchor: [7,30],
-             });
+        var bmarker = L.icon({
+            iconUrl: '/images/blackmarker.png',
+            iconSize: [20, 30],
+            iconAnchor: [7, 30],
+        });
 
 
         var currentLocationMark = L.icon({
-            iconUrl : '/images/marker1.png',
+            iconUrl: '/images/marker1.png',
             iconSize: [35, 60],
-            iconAnchor: [17,60],
-            shadowSize:   [50, 64],
+            iconAnchor: [17, 60],
+            shadowSize: [50, 64],
             shadowAnchor: [22, 94],
         });
 
-        L.marker([lat, long], {icon: currentLocationMark}).addTo(map).bindPopup("Posição da Imagem");
+        L.marker([lat, long], { icon: currentLocationMark }).addTo(map).bindPopup("Posição da Imagem");
 
         {{ range.Points }}
 
-        var marker = L.marker([{{.Latitude }}, {{.Longitude }}], {icon: bmarker}).addTo(map);
+        var marker = L.marker([{{ .Latitude }}, {{.Longitude }}], { icon: bmarker }).addTo(map);
 
         marker.bindTooltip("BR{{.Rodovia}} Km {{.Km}}",
             {

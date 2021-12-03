@@ -112,6 +112,7 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 				if j == 0 {
 					nIdentidade = strings.Replace(word, ".", "", -1)
 				} else if j == 1 {
+					fmt.Println(word)
 					if row[j+1] == "" {
 						tempDate, err := time.Parse("1/2/06 15:04", word)
 						if err != nil {
@@ -145,8 +146,12 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 
 				} else if j == 5 {
 					kmInicial = word
+					kmInicial = strings.Replace(kmInicial, ",", ".", -1)
+					fmt.Printf("km inicial: %v\n", kmInicial)
 				} else if j == 6 {
 					kmFinal = word
+					kmFinal = strings.Replace(kmFinal, ",", ".", -1)
+					fmt.Printf("km final : %v\n", kmFinal)
 				} else if j == 7 {
 					if strings.HasPrefix(word, "c") {
 						sentido = "Crescente"

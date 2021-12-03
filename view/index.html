@@ -2,9 +2,9 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" media="screen" />
     <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="css/style.css" media="screen" />
@@ -16,76 +16,105 @@
         <nav class="navbar navbar-light bg-light navbar-expand-lg">
             <div class="container">
                 <a class="navbar-brand" href="/">
-                    <img src="images/logo.png" alt="" height="50">
+                    <img src="images/logo.png" alt="" height="50" />
                 </a>
             </div>
         </nav>
     </div>
 
     <div class="container">
-        <div style="margin-top: 30px;">
-
+        <div style="margin-top: 30px">
             <label for="folderselect">Escolha a Pasta:</label>
 
             <div>
                 <select id="homeselect" class="form-select" id="folderselect" name="folderselect" form="titulo">
-                    {{ range .Folders}}
-                    <option value="{{.FolderName}}">{{.FolderName}}</option>
-                    {{end}}
-                </select>
-                <form id="homeform" style="margin-bottom:  50px;">
-                    <input id="hometitle" type="text" name="titulo" class="form-control"
-                        placeholder="Se quiser Mudar o título do Relatório" style="margin-top: 8px;">
-                    <button id="gerarInput" type="button" class="btn btn-primary" onclick="toReport1()">Gerar Relatório
+                        {{ range .Folders}}
+                        <option value="{{.FolderName}}">{{.FolderName}}</option>
+                        {{end}}
+                    </select>
+                <form id="homeform" style="margin-bottom: 50px">
+                    <input id="hometitle" type="text" name="titulo" class="form-control" placeholder="Se quiser Mudar o título do Relatório" style="margin-top: 8px" />
+                    <button id="gerarInput" type="button" class="btn btn-primary" onclick="toReport1()">
+                            Gerar Relatório
+                        </button>
+                    <span><button
+                                id="reduzir"
+                                type="button"
+                                class="btn btn-secondary"
+                                onclick="compactImages()"
+                            >
+                                Reduzir Imagens
+                            </button></span
+                        >
+                        <span>
+                            <div
+                                id="spinner"
+                                class="spinner-border spin"
+                                role="status"
+                            >
+                                <span class="sr-only"></span>
+            </div>
+            </span>
+            </form>
+            <div id="notification" class="alert alert-danger erro" role="alert"></div>
+            <div id="success1" class="alert alert-success sucesso" role="alert"></div>
+        </div>
+    </div>
+
+    <label for="sifamaCheckForm">Importar dados para verificação dos TROs</label
+            >
+            <div>
+                <form id="sifamaCheckForm">
+                    <input
+                        type="text"
+                        id="user"
+                        class="form-control"
+                        placeholder="Usuário"
+                    />
+                    <input type="password" id="password" class="form-control"
+                    placeholder="senha" style="margin-top: 7px" ;">
+
+                    <button
+                        type="button"
+                        id="geraRelatorio"
+                        class="btn btn-primary"
+                        type="submit"
+                        value="Gerar Relatório"
+                        onclick="checkSifama1()"
+                    >
+                        Finalizar TROs no Sifama
                     </button>
-                    <span><button id="reduzir" type="button" class="btn btn-secondary" onclick="compactImages()">Reduzir
-                            Imagens</button></span>
                     <span>
-                        <div id="spinner" class="spinner-border spin" role="status">
+                        <div
+                            id="spinnerCheck"
+                            class="spinner-border spin"
+                            role="status"
+                            style="display: none"
+                        >
                             <span class="sr-only"></span>
                         </div>
                     </span>
                 </form>
-                <div id="notification" class="alert alert-danger erro" role="alert"></div>
-                <div id="success1" class="alert alert-success sucesso" role="alert"></div>
-
-
+                <div
+                    id="notification1"
+                    class="alert alert-danger erro"
+                    role="alert"
+                ></div>
+                <div
+                    id="success"
+                    class="alert alert-success sucesso"
+                    role="alert"
+                ></div>
             </div>
 
-        </div>
-
-        <label for="sifamaCheckForm">Importar dados para verificação dos TROs</label>
-        <div>
-            <form id="sifamaCheckForm">
-                <input type="text" id="user" class="form-control" placeholder="Usuário">
-                <input type="password" id="password" class="form-control" placeholder="senha" style="margin-top: 7px"
-                    ;">
-
-
-                <button type="button" id="geraRelatorio" class="btn btn-primary" type="submit" value="Gerar Relatório"
-                    onclick="checkSifama1()">Finalizar TROs no Sifama</button>
-                <span>
-                    <div id="spinnerCheck" class="spinner-border spin" role="status" style="display:none">
-                        <span class="sr-only"></span>
-                    </div>
-                </span>
-            </form>
-            <div id="notification1" class="alert alert-danger erro" role="alert"></div>
-            <div id="success" class="alert alert-success sucesso" role="alert"></div>
-
-        </div>
-
-
-        <!-- <div class="disposicao">
+            <!-- <div class="disposicao">
             Abra a planilha Online<a
                 href="https://anttgov-my.sharepoint.com/:x:/g/personal/eduardo_gerhardt_antt_gov_br/EaTYDn6s5upAg2FFBbMUGDkBF-o7Xw2ghfbhGILWyZmrVw?e=kReT4L"
                 target="_blank">
                 Aqui.
             </a>
         </div> -->
-    </div>
-    <script src="script/script.js"></script>
-
-</body>
-
+        </div>
+        <script src="script/script.js"></script>
+    </body>
 </html>

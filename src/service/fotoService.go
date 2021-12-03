@@ -27,6 +27,14 @@ type GeoUtil struct {
 	index   int
 }
 
+func removeDots(filename string) string {
+	count := strings.Count(filename, ".")
+	if count > 1 {
+		filename = strings.Replace(filename, ".", "", count-1)
+	}
+	return filename
+}
+
 func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, listaGeo []model.Geolocation, linha int) error {
 
 	var lat float64
@@ -41,6 +49,10 @@ func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, lista
 		}
 
 		dir, name := filepath.Split(currentPath)
+
+		err = os.Rename(currentPath, filepath.Join(dir, name))
+
+		currentPath = filepath.Join(dir, name)
 
 		re := regexp.MustCompile(localId + `[^0-9]`)
 		m := re.MatchString(name)
@@ -318,6 +330,28 @@ func insertGPSIntoImage(filepath string, lat, long float64) error {
 
 }
 
+func copyAllMetadataAndChangeOrientationTo1(originPath, targetPath string) error {
+
+	var command string
+	if strings.Contains(runtime.GOOS, "window") {
+		command = util.EXIFTOOL
+	} else {
+		command = "exiftool"
+	}
+
+	fmt.Println("tentando copiar metadados de:")
+	fmt.Printf("%s para %s\n", originPath, targetPath)
+
+	override := "-overwrite_original"
+	cmd := exec.Command(command, "-TagsFromFile", originPath, targetPath, "-orientation=1", "-n", override)
+	returnMessage, err := cmd.Output()
+	fmt.Println(string(returnMessage))
+	if err != nil {
+		return fmt.Errorf(string(returnMessage))
+	}
+	return nil
+
+}
 func copyAllMetadata(originPath, targetPath string) error {
 
 	var command string
@@ -331,7 +365,7 @@ func copyAllMetadata(originPath, targetPath string) error {
 	fmt.Printf("%s para %s\n", originPath, targetPath)
 
 	override := "-overwrite_original"
-	cmd := exec.Command(command, "-TagsFromFile", originPath, "--Orientation", targetPath, override)
+	cmd := exec.Command(command, "-TagsFromFile", originPath, targetPath, override)
 	returnMessage, err := cmd.Output()
 	fmt.Println(string(returnMessage))
 	if err != nil {
@@ -340,6 +374,7 @@ func copyAllMetadata(originPath, targetPath string) error {
 	return nil
 
 }
+
 func resizeImageAndCopyMetadata(imagePath string, size uint) error {
 
 	var img image.Image
@@ -436,6 +471,7 @@ func ResizeAllImagesInFolder(path string, width uint) (string, error) {
 				return fmt.Errorf("não consegui abrir o arquivo: %s", currentPath)
 			}
 			if conf.Width > int(width) {
+
 				err = resizeImageAndCopyMetadata(currentPath, width)
 				if err != nil {
 					return fmt.Errorf("não foi possível reduzir o arquivo: %s\n", currentPath+err.Error())
@@ -487,7 +523,7 @@ func ResizeImageAndCopyMetadataFromOriginal(imagePath, originPath string, size u
 
 	}
 
-	err = copyAllMetadata(originPath, imagePath)
+	err = copyAllMetadataAndChangeOrientationTo1(originPath, imagePath)
 	if err != nil {
 		return err
 	}

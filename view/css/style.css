@@ -1,7 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200;1,300;1,400;1,500;1,600&display=swap');
 body {
-    font: Montserrat;
+    font-family: 'Montserrat', sans-serif;
     font-size: 32px;
-    color: rgb(58, 58, 58) ;
+    color: rgb(58, 58, 58);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+    font-family: 'Montserrat', sans-serif;
 }
 
 .title {
@@ -15,18 +24,14 @@ body {
     display: none;
 }
 
-
 .tro {
     font-size: 0.7em;
-    
-
 }
 
 .local-title {
     font-size: 0.6em;
     font-style: italic;
     width: 100%;
-
 }
 
 .dnit {
@@ -43,24 +48,22 @@ body {
     font-style: italic;
     margin: auto;
     width: auto;
-
     display: inline-block;
 }
 
-.geotag a:link, a:visited{
+.geotag a:link,
+a:visited {
     color: rgb(91, 94, 91);
-    
 }
-  
-  .geotag a:hover {
-    text-decoration:rgb(44, 44, 44);
-    font-weight: 600;
-  }
-  
-  .geotag a:active {
-    text-decoration: underline;
-  }
 
+.geotag a:hover {
+    text-decoration: rgb(44, 44, 44);
+    font-weight: 600;
+}
+
+.geotag a:active {
+    text-decoration: underline;
+}
 
 .justifyblock {
     justify-content: center;
@@ -82,11 +85,8 @@ body {
     margin-bottom: 7px;
 }
 
-
-
-
 #map {
-    height: 1000px;
+    height: 900px;
     width: 100%;
 }
 
@@ -95,24 +95,26 @@ body {
     font-style: italic;
     margin: auto;
     width: auto;
-
     display: inline-block;
 }
 
-.link a:link{
+.link a:link {
     color: honeydew;
-    
 }
+
 .link a:visited {
     color: honeydew;
-  }
-  
-  .link a:hover {
-    text-decoration:lightpink;
-    font-weight: 300;
-  }
-  
-  .link a:active {
-    text-decoration: underline;
-  }
+}
 
+.link a:hover {
+    text-decoration: lightpink;
+    font-weight: 300;
+}
+
+.link a:active {
+    text-decoration: underline;
+}
+
+.img-min {
+    min-width: 320px;
+}

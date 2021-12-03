@@ -96,14 +96,15 @@ func reportGet(w http.ResponseWriter, r *http.Request) {
 	totalTro := len(tros)
 	totalFotos := 0
 	for _, tro := range tros {
-		totalFotos += len(tro.Locais)
+
 		locais := tro.Locais
 		for _, loc := range locais {
+			totalFotos += len(loc.Fotos)
 			if len(loc.Fotos) < 1 {
 				localWithNoFotos = append(localWithNoFotos, loc)
 			}
-		}
 
+		}
 	}
 
 	data := model.TroModel{
