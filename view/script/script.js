@@ -9,14 +9,15 @@ async function getResponseFromServer(
     API,
     requestData
 ) {
+    console.log('entrou no getResponseFromServer');
     if (userId.length > 1) {
         console.log('entrou no null');
         clearForm([userId, pwdId]);
     }
 
-    spinner = document.getElementById(spinnerID);
-    successDiv = document.getElementById(successDivId);
-    errorDiv = document.getElementById(errorDivId);
+    let spinner = document.getElementById(spinnerID);
+    let successDiv = document.getElementById(successDivId);
+    let errorDiv = document.getElementById(errorDivId);
     errorDiv.style.display = 'none';
     successDiv.style.display = 'none';
 
@@ -119,7 +120,7 @@ async function checkSifama1() {
     );
 }
 
-async function startDigitacao1() {
+async function startDigitacao1(event) {
     userId = 'user';
     passwordId = 'password';
     notificationDivId = 'notification';
@@ -128,7 +129,7 @@ async function startDigitacao1() {
     API = '/report';
 
     // document.getElementById(spinnerId).style.display = 'inline-block'
-
+    event.preventDefault()
     user = document.getElementById(userId).value;
     pwd = document.getElementById(passwordId).value;
 
@@ -144,6 +145,7 @@ async function startDigitacao1() {
         User: user,
         Passd: pwd,
     };
+    console.log('startDigitacao1');
 
     getResponseFromServer(
         userId,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sifamaGO/src/util"
 	"strconv"
 
@@ -35,5 +36,21 @@ func GetEnv() error {
 	util.MAXIMAGEWIDTH = uint(MaxImageWidth)
 	util.ROOTPATH = os.Getenv("ROOTPATH")
 
+	// verify if imagefolder is relative or absolute path:
+
+	currentDirectory, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	fullPath := filepath.Join(currentDirectory, util.OUTPUTIMAGEFOLDER)
+
+	let1 := string(util.OUTPUTIMAGEFOLDER[1])
+	let0 := string(util.OUTPUTIMAGEFOLDER[0])
+
+	if !(let1 == ":" || let0 == "/") {
+		util.OUTPUTIMAGEFOLDER = fullPath
+	}
+	fmt.Println("util.OUTPUTIMAGEFOLDER --> ", util.OUTPUTIMAGEFOLDER)
 	return nil
 }

@@ -19,6 +19,27 @@ import (
 	"sifamaGO/src/util"
 )
 
+func testPaths() {
+
+	currentDirectory, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	imgPath1 := filepath.Join(currentDirectory, util.OUTPUTIMAGEFOLDER)
+
+	imgpath := util.OUTPUTIMAGEFOLDER
+
+	_, err = os.Stat(imgpath)
+	if os.IsNotExist(err) {
+		imgpath = imgPath1
+	}
+
+	fmt.Println(imgPath1)
+	fmt.Println(imgpath)
+
+}
+
 func removeDots(filename string) string {
 	count := strings.Count(filename, ".")
 	if count > 1 {

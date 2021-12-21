@@ -12,6 +12,7 @@ import (
 	"sifamaGO/src/util"
 
 	"github.com/tebeka/selenium"
+	"github.com/tebeka/selenium/chrome"
 )
 
 const (
@@ -59,7 +60,7 @@ func getConcessionariaValue() (string, error) {
 	} else if util.CONCESSIONARIA == "ECO050" {
 		return "19208022000170", nil
 	}
-	return "", fmt.Errorf("não foi possível determinar a concessionária.")
+	return "", fmt.Errorf("não foi possível determinar a concessionária")
 }
 
 func InicioDigitacao(r *http.Request, user, password string) (string, error) {
@@ -79,6 +80,14 @@ func InicioDigitacao(r *http.Request, user, password string) (string, error) {
 	caps := selenium.Capabilities{
 		"browserName": "chrome",
 	}
+	caps.AddChrome(
+		chrome.Capabilities{
+			Args: []string{
+				"--disable-gpu",
+				"--disable-software-rasterizer",
+			},
+		},
+	)
 	// caps.AddChrome(
 	// 	chrome.Capabilities{
 	// 		Args: []string{"--headless"},
@@ -396,8 +405,6 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 			}
 
 			imgpath := filepath.Join(util.OUTPUTIMAGEFOLDER, foto.Nome)
-
-			fmt.Println(imgpath)
 
 			err = enviaChaves(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_uplFotoLocal", imgpath)
 			if err != nil {
