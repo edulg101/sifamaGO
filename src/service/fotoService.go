@@ -27,14 +27,6 @@ type GeoUtil struct {
 	index   int
 }
 
-func removeDots(filename string) string {
-	count := strings.Count(filename, ".")
-	if count > 1 {
-		filename = strings.Replace(filename, ".", "", count-1)
-	}
-	return filename
-}
-
 func PopulateFotosOnDB2(path, localId, caption string, local *model.Local, listaGeo []model.Geolocation, linha int) error {
 
 	var lat float64

@@ -64,6 +64,7 @@ func CheckForNameSize(fullPath string) (string, error) {
 	folder, fileName := filepath.Split(fullPath)
 
 	newFileName := removeAccentsAndRemoveWhiteSpaces(fileName)
+	newFileName = removeDots(newFileName)
 
 	nameLength := len(fileName)
 
@@ -86,15 +87,24 @@ func CheckForNameSize(fullPath string) (string, error) {
 	oldPath := filepath.Join(folder, fileName)
 	newPath := filepath.Join(folder, newFileName)
 
-	fmt.Println("mudando o nome do arquivo")
-	fmt.Println("nome antigo: ", oldPath)
-	fmt.Println("novo nome:", newPath)
-	err = os.Rename(oldPath, newPath)
-
+	if oldPath != newPath {
+		fmt.Println("mudando o nome do arquivo")
+		fmt.Println("nome antigo: ", oldPath)
+		fmt.Println("novo nome:", newPath)
+		err = os.Rename(oldPath, newPath)
+	}
 	return newFileName, err
 
 	// }
 	// return fileName, err
+}
+
+func removeDots(filename string) string {
+	count := strings.Count(filename, ".")
+	if count > 1 {
+		filename = strings.Replace(filename, ".", "", count-1)
+	}
+	return filename
 }
 
 func removeAccents(s string) string {

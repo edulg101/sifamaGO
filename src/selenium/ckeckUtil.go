@@ -16,9 +16,6 @@ func reg(id string) string {
 
 	subString := r.FindStringSubmatch(id)
 
-	fmt.Println("id:", id)
-	fmt.Println("substring:", subString)
-
 	return subString[1]
 
 }

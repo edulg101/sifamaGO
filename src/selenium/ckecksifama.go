@@ -146,9 +146,6 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 		return "", err
 	}
 
-	fmt.Println("listaTos:")
-	fmt.Println(listaTros)
-
 	totalTros := len(tros)
 	sucessMessage := fmt.Sprintf("Foram Registratos %d TROs com Sucesso !", totalTros-1)
 
@@ -218,7 +215,6 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 					flag = false
 					break
 				}
-				fmt.Println(err)
 
 			}
 			time.Sleep(time.Second / 2)

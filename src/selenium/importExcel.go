@@ -2,6 +2,7 @@ package selenium
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -65,7 +66,7 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 			word = strings.ToLower(word)
 			word = strings.TrimSpace(word)
 
-			if strings.Contains(word, "de ident.") {
+			if strings.Contains(word, "de ident") {
 				break
 			}
 
@@ -112,27 +113,34 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 				if j == 0 {
 					nIdentidade = strings.Replace(word, ".", "", -1)
 				} else if j == 1 {
-					fmt.Println(word)
 					if row[j+1] == "" {
-						tempDate, err := time.Parse("1/2/06 15:04", word)
+						date, hora, err = parseFullDateAsDate(word)
 						if err != nil {
-							return fmt.Errorf("erro. não consegui identificar a string data / hora na linha %v.... abortando", i+1)
-
+							date, hora, err = parseFullDateAsDecimals(word)
+							if err != nil {
+								return fmt.Errorf("erro. não consegui identificar a string data / hora na linha %v.... abortando", i+1)
+							}
 						}
-						date = tempDate.Format("02/01/2006")
-						hora = tempDate.Format("15:04")
 
 					} else {
 						tempDate, err := time.Parse("01-02-06", word)
-						if err != nil {
-							return fmt.Errorf("erro. não consegui identificar a string hora na linha %v.... abortando", i+1)
-
-						}
 						date = tempDate.Format("02/01/2006")
+						if err != nil {
+							date, hora, err = parseFullDateAsDecimals(word)
+							if err != nil {
+								return fmt.Errorf("erro. não consegui identificar a string hora na linha %v.... abortando", i+1)
+							}
+						}
+
 					}
 				} else if j == 2 {
-					if word != "" {
-						hora = word
+					if word != "" || len(hora) != 5 {
+
+						hora, _ = horaToString(word)
+						if len(hora) != 5 {
+							return fmt.Errorf("erro. não consegui identificar a string hora na linha %v.... abortando transformado: %v, word: %v", i+1, hora, word)
+						}
+
 					}
 				} else if j == 4 {
 					var concessionaria string
@@ -214,6 +222,9 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 						Pista:            pista,
 						Tro:              tro,
 					}
+					fmt.Println("DATA-->", local.Data)
+					fmt.Println("HORA-->", local.Hora)
+
 					// Check if is the same local:
 					if rodovia == previousLocal.Rodovia &&
 						kmInicial == previousLocal.KmInicial &&
@@ -270,6 +281,54 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 	}
 
 	return nil
+}
+
+func parseFullDateAsDate(word string) (string, string, error) {
+	tempDate, err := time.Parse("1/2/06 15:04", word)
+	if err != nil {
+		return "", "", err
+
+	}
+	date := tempDate.Format("02/01/2006")
+	hora := tempDate.Format("15:04")
+	return date, hora, err
+}
+func parseFullDateAsDecimals(word string) (string, string, error) {
+	windowsStartDate, err := time.Parse("01-02-2006", "01-01-1900")
+	if err != nil {
+		return "", "", err
+
+	}
+	splited := strings.Split(word, ".")
+	days, err := strconv.ParseInt(splited[0], 10, 64)
+	if err != nil {
+		return "", "", err
+
+	}
+	day := windowsStartDate.Add(time.Hour * time.Duration(days-1) * 24)
+	date := day.Format("02/01/06")
+	hora, err := horaToString(word)
+	return date, hora, err
+}
+
+func horaToString(word string) (string, error) {
+	num, err := strconv.ParseFloat(word, 64)
+	if err != nil {
+		return word, nil
+	}
+	if num > 4000 {
+		decimals := (num - float64(int(num)))
+		fullHour := decimals * 24
+		hourDecimal := (fullHour - float64(int(fullHour)))
+		minute := hourDecimal * 60
+		timeStr := fmt.Sprintf("%02d:%02d", int(fullHour), int(math.Round(minute)))
+		return timeStr, nil
+	}
+	minTemp := num * 24.0
+	min := int(minTemp)
+	seconds := int((minTemp - float64(min)) * 60)
+	timeStr := fmt.Sprintf("%02d:%02d", min, seconds)
+	return timeStr, nil
 }
 
 type compareTroTime struct {
