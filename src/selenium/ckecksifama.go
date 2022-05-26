@@ -121,11 +121,12 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 	troText := tro[2]
 	var codAtendimento string = ""
 
-	if strings.ToLower(tro[3]) == "s" {
+	if strings.ToLower(tro[3]) == "s" || strings.ToLower(tro[3]) == "sim" {
 		codAtendimento = "2"
-	}
-	if strings.ToLower(tro[3]) == "n" {
+	} else if strings.ToLower(tro[3]) == "n" || strings.ToLower(tro[3]) == "não" || strings.ToLower(tro[3]) == "nao" {
 		codAtendimento = "3"
+	} else {
+		return "", fmt.Errorf("nao foi possivel identificar o codigo de atendimento ('sim ou nao'")
 	}
 
 	waitForJsAndJquery(driver)
@@ -178,7 +179,7 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 
 	for _, x := range listaTros {
 		text, _ := x.Text()
-		if strings.Contains(text, troNumber+"2021") {
+		if strings.Contains(text, troNumber+"202") {
 			getTBody, err := x.FindElement(selenium.ByXPATH, "../../..")
 			if err != nil {
 				return "", err
@@ -276,8 +277,37 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 	fmt.Println("marca como atendido")
 
 	jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
-
+	waitForJsAndJquery(driver)
 	time.Sleep(time.Second)
+	fmt.Println("codigo atendimento:", codAtendimento)
+
+	response, _ := getResponseFromScript(driver, "$('#ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlResultadoAnaliseExecucao').val()")
+	waitForJsAndJquery(driver)
+
+	fmt.Print("response:")
+	fmt.Println(response)
+	fmt.Println(response == codAtendimento)
+
+	// doublecheck if codAtendimento has been correctly changed.
+	actualLoop := 0
+	for response != codAtendimento {
+		jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
+		time.Sleep(time.Second + time.Second*time.Duration(actualLoop))
+		waitForJsAndJquery(driver)
+
+		response, err = getResponseFromScript(driver, "$('#ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlResultadoAnaliseExecucao').val()")
+		actualLoop++
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Println("response:", response)
+
+		fmt.Printf("tentativa %d para inserir cod atendimento\n", actualLoop)
+
+		if actualLoop > 5 {
+			return "", fmt.Errorf("não foi possivel alterar o campo Atendimento. abortando. internet ruim?")
+		}
+	}
 
 	scriptToClick(driver, PASSWORDCAMPO)
 
@@ -329,7 +359,7 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 
 	time.Sleep(time.Second)
 
-	fmt.Printf("Salva Tro n. %v/2021 \n", troNumber)
+	fmt.Printf("Salva Tro n. %v \n", troNumber)
 
 	return sucessMessage, err
 

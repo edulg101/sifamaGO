@@ -111,6 +111,7 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 
 			if startLocais {
 				if j == 0 {
+					fmt.Println("idOriginal-->", word)
 					nIdentidade = strings.Replace(word, ".", "", -1)
 				} else if j == 1 {
 					if row[j+1] == "" {
@@ -222,6 +223,8 @@ func parseSpreadSheet(session *model.Session, rows [][]string, db *gorm.DB) erro
 						Pista:            pista,
 						Tro:              tro,
 					}
+
+					fmt.Println("nIdentidade-->", local.NumIdentificacao)
 					fmt.Println("DATA-->", local.Data)
 					fmt.Println("HORA-->", local.Hora)
 

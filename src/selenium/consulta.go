@@ -296,3 +296,15 @@ func checkForErrorsCkeckSifama(driver selenium.WebDriver) error {
 	}
 	return nil
 }
+
+func getResponseFromScript(driver selenium.WebDriver, script string) (string, error) {
+	fullScript := "return " + script
+	fmt.Println("fullscript:", fullScript)
+	r, err := driver.ExecuteScript(fullScript, nil)
+	fmt.Println("printR:", r)
+	v, ok := r.(string)
+	if !ok {
+		return "", errors.New("houve algum erro com a alteração do status do atendimento. Tente novamente")
+	}
+	return v, err
+}

@@ -12,7 +12,7 @@ import (
 
 func reg(id string) string {
 
-	r, _ := regexp.Compile(`TRO0*(\d+)2021`)
+	r, _ := regexp.Compile(`TRO0*(\d+)202(\d)`)
 
 	subString := r.FindStringSubmatch(id)
 

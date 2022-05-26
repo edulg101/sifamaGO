@@ -187,6 +187,30 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 
 	waitForJsAndJquery(driver)
 
+	// change Unidade Regional
+	regionalCheckBox, err := waitForElementById(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_chkUnidadeManual", 10)
+
+	if err != nil {
+		return fmt.Errorf("erro ao marcar o checkbox da unidade regional")
+	}
+
+	regionalCheckBox.Click()
+
+	waitForJsAndJquery(driver)
+
+	err = waitForElementToBeClickableAndClick(driver, "MessageBox_ButtonOk")
+	if err != nil {
+		return fmt.Errorf("erro ao marcar o ok do checkbox da unidade regional")
+	}
+
+	waitForJsAndJquery(driver)
+
+	jqueryScriptWithChange(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlUnidadeRegional", "7414")
+
+	waitForJsAndJquery(driver)
+
+	// fim do codigo para alterar Uniade Regional.
+
 	fmt.Println("Selecionando Concessionária na lista")
 
 	concessionariaValue, err = getConcessionariaValue()
@@ -194,9 +218,13 @@ func registroTro(tro model.Tro, driver selenium.WebDriver, actualTro, totalTro i
 		return fmt.Errorf("não foi possível identificar a concessionária")
 	}
 
+	fmt.Println("valor concessionária:", concessionariaValue)
+
 	// time.Sleep(time.Minute / 3)
 
 	jqueryScriptWithChange(driver, "ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlConcessionaria", concessionariaValue)
+
+	waitForJsAndJquery(driver)
 
 	waitForProcessBar(driver, idProcessando)
 

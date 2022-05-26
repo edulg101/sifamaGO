@@ -49,7 +49,7 @@ func removeDots(filename string) string {
 }
 
 func startRemoveDots() {
-	path := "D:\\OneDrive - ANTT- Agencia Nacional de Transportes Terrestres\\SharePointCRO\\RTA\\2 - Diários\\2021-11\\2021_11_17 RDO"
+	path := "D:\\OneDrive - ANTT- Agencia Nacional de Transportes Terrestres\\SharePointCRO\\RTA\\1 - Semanais\\2022\\2022-01\\RA CRO 030122"
 	err := filepath.Walk(path, func(currentPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			panic(err)
@@ -77,6 +77,8 @@ func main() {
 	if err1 != nil {
 		panic(err1)
 	}
+
+	// startRemoveDots()
 
 	ui, er := lorca.New("", "", 1000, 800)
 	if er != nil {
