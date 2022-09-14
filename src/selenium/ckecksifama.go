@@ -129,6 +129,8 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 		return "", fmt.Errorf("nao foi possivel identificar o codigo de atendimento ('sim ou nao'")
 	}
 
+	fmt.Println(codAtendimento)
+
 	waitForJsAndJquery(driver)
 
 	we, err := waitForElementByXpath(driver, "/html/body/div[1]/div[1]/div[1]/div[1]")
@@ -224,6 +226,15 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 		fmt.Println(i)
 	}
 
+	_, err = driver.ExecuteScript("document.getElementById('checkHeader').click()", nil)
+
+	if err != nil {
+		return "", err
+	}
+	time.Sleep(time.Second)
+
+	waitForJsAndJquery(driver)
+
 	todayDate := time.Now()
 	today := todayDate.Format("02/01/2006")
 
@@ -274,44 +285,58 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 
 	waitForJsAndJquery(driver)
 
-	fmt.Println("marca como atendido")
+	// fmt.Println("marca como atendido")
 
-	jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
-	waitForJsAndJquery(driver)
-	time.Sleep(time.Second)
-	fmt.Println("codigo atendimento:", codAtendimento)
+	// jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
+	// waitForJsAndJquery(driver)
+	// time.Sleep(time.Second)
+	// fmt.Println("codigo atendimento:", codAtendimento)
 
-	response, _ := getResponseFromScript(driver, "$('#ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlResultadoAnaliseExecucao').val()")
-	waitForJsAndJquery(driver)
+	// response, _ := getResponseFromScript(driver, "$('#ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlResultadoAnaliseExecucao').val()")
+	// waitForJsAndJquery(driver)
 
-	fmt.Print("response:")
-	fmt.Println(response)
-	fmt.Println(response == codAtendimento)
+	// fmt.Print("response:")
+	// fmt.Println(response)
+	// fmt.Println(response == codAtendimento)
 
 	// doublecheck if codAtendimento has been correctly changed.
-	actualLoop := 0
-	for response != codAtendimento {
-		jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
-		time.Sleep(time.Second + time.Second*time.Duration(actualLoop))
-		waitForJsAndJquery(driver)
+	// actualLoop := 0
+	// for response != codAtendimento {
+	// 	jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
+	// 	time.Sleep(time.Second + time.Second*time.Duration(actualLoop))
+	// 	waitForJsAndJquery(driver)
 
-		response, err = getResponseFromScript(driver, "$('#ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlResultadoAnaliseExecucao').val()")
-		actualLoop++
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		fmt.Println("response:", response)
+	// 	response, err = getResponseFromScript(driver, "$('#ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ddlResultadoAnaliseExecucao').val()")
+	// 	actualLoop++
+	// 	if err != nil {
+	// 		fmt.Println(err.Error())
+	// 	}
+	// 	fmt.Println("response:", response)
 
-		fmt.Printf("tentativa %d para inserir cod atendimento\n", actualLoop)
+	// 	fmt.Printf("tentativa %d para inserir cod atendimento\n", actualLoop)
 
-		if actualLoop > 5 {
-			return "", fmt.Errorf("não foi possivel alterar o campo Atendimento. abortando. internet ruim?")
-		}
+	// 	if actualLoop > 5 {
+	// 		return "", fmt.Errorf("não foi possivel alterar o campo Atendimento. abortando. internet ruim?")
+	// 	}
+	// }
+
+	resp, err := getResponseFromScript(driver, "document.querySelector('#ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_ContentPlaceHolderCorpo_txtResultadoAnalise').getAttribute('style')")
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println(resp)
+
+	time.Sleep(time.Second * 10)
+
+	if !strings.Contains(resp, "Green") {
+		return "", fmt.Errorf("erro na dupla verificação do atendimento - Campo não ficou verde")
 	}
 
 	scriptToClick(driver, PASSWORDCAMPO)
 
-	jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
+	// jqueryScript(driver, ATENDIDOCAMPOSELECT, codAtendimento)
 
 	waitForJsAndJquery(driver)
 
@@ -348,6 +373,10 @@ func inicioVerificacao(driver selenium.WebDriver, tro []string, pass string, tro
 	waitForJsAndJquery(driver)
 
 	fmt.Println("Envia formulario")
+
+	// driver.ExecuteScript("alert('terminou')", nil)
+
+	// time.Sleep(time.Hour)
 
 	scriptToClick(driver, SALVARBUTTON)
 
