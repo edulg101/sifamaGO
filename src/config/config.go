@@ -21,13 +21,16 @@ func GetEnv() error {
 	if err = godotenv.Load(); err != nil {
 		log.Fatal(err)
 	}
+	currentDir, err := os.Getwd()
+	if err != nil {
+	}
 	util.PORT = os.Getenv("PORT")
-	util.SELENIUMPATH = os.Getenv("SELENIUMPATH")
-	util.SPREADSHEETPATH = os.Getenv("SPREADSHEETPATH")
+	util.SELENIUMPATH = filepath.Join(currentDir, os.Getenv("SELENIUMPATH"))
+	util.SPREADSHEETPATH = filepath.Join(currentDir, os.Getenv("SPREADSHEETPATH"))
 	util.FONTPATH = os.Getenv("FONTPATH")
-	util.OUTPUTIMAGEFOLDER = os.Getenv("OUTPUTIMAGEFOLDER")
-	util.EXIFTOOL = os.Getenv("EXIFTOOL")
-	util.CHECKSPREADSHEETPATH = os.Getenv("CHECKSPREADSHEETPATH")
+	util.OUTPUTIMAGEFOLDER = filepath.Join(currentDir, os.Getenv("OUTPUTIMAGEFOLDER"))
+	util.EXIFTOOL = filepath.Join(currentDir, os.Getenv("EXIFTOOL"))
+	util.CHECKSPREADSHEETPATH = filepath.Join(currentDir, os.Getenv("CHECKSPREADSHEETPATH"))
 
 	MaxImageWidth, err := strconv.ParseUint(os.Getenv("MAX-IMAGE-WIDTH"), 10, 32)
 	if err != nil {
